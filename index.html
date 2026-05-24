@@ -18,7 +18,7 @@
           <span>House Data Taiwan</span>
         </a>
         <div class="nav-links">
-          <a href="#taiwan">全台</a>
+          <a href="#taiwan-live">即時地圖</a>
           <a href="#changhua">彰化</a>
           <a href="#sources">資料來源</a>
         </div>
@@ -32,8 +32,8 @@
             做成可以查詢、排序、比對的視覺化地圖。
           </p>
           <div class="hero-actions">
-            <a class="button primary" href="#changhua">查看彰化地圖</a>
-            <button class="button ghost" id="refreshData" type="button">重新撈公開資訊</button>
+            <a class="button primary" href="#taiwan-live">查全台即時資料</a>
+            <a class="button ghost" href="#changhua">查看彰化地圖</a>
           </div>
         </div>
         <div class="hero-panel" aria-label="資料概況">
@@ -62,6 +62,85 @@
           <h2>全台新屋比例快照</h2>
         </div>
         <div class="stat-grid" id="nationalCards"></div>
+      </section>
+
+      <section class="section live-map" id="taiwan-live">
+        <div class="section-title">
+          <div>
+            <p class="eyebrow">Live Open Data</p>
+            <h2>全台即時公開資料地圖</h2>
+          </div>
+          <p class="section-kicker">
+            選擇縣市與關注指標，網頁會直接連到內政部實價登錄開放資料 ZIP，解壓 CSV 後在瀏覽器端計算。
+          </p>
+        </div>
+
+        <div class="live-layout">
+          <section class="map-card taiwan-card" aria-label="台灣地圖">
+            <svg id="taiwanMap" role="img" aria-labelledby="taiwanMapTitle taiwanMapDesc" viewBox="0 0 420 720">
+              <title id="taiwanMapTitle">台灣縣市互動地圖</title>
+              <desc id="taiwanMapDesc">點選縣市後可以抓取即時公開資料並計算住宅交易指標。</desc>
+            </svg>
+          </section>
+
+          <section class="live-panel" aria-label="即時資料查詢">
+            <div class="toolbar compact" aria-label="即時查詢工具列">
+              <label class="select-field">
+                <span>縣市</span>
+                <select id="countySelect"></select>
+              </label>
+              <label class="select-field">
+                <span>關注指標</span>
+                <select id="poiSelect">
+                  <option value="market">近期買賣交易概況</option>
+                  <option value="new">5 年內新屋交易比例</option>
+                  <option value="residential">住宅型態交易量</option>
+                </select>
+              </label>
+            </div>
+
+            <button class="button primary dark" id="fetchLiveData" type="button">撈取並計算公開資料</button>
+            <p class="note" id="liveStatus">尚未抓取。點選地圖或選擇縣市後按下按鈕開始。</p>
+
+            <div class="live-stats" id="liveStats">
+              <article>
+                <span class="metric-label">交易筆數</span>
+                <strong>--</strong>
+              </article>
+              <article>
+                <span class="metric-label">平均單價</span>
+                <strong>--</strong>
+              </article>
+              <article>
+                <span class="metric-label">5 年內新屋</span>
+                <strong>--</strong>
+              </article>
+            </div>
+
+            <div class="network-box">
+              <h3>Live network request</h3>
+              <code id="liveEndpoint">https://plvr.land.moi.gov.tw/Download?type=zip&amp;fileName=lvr_landcsv.zip</code>
+            </div>
+
+            <div class="table-wrap compact-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>鄉鎮市區</th>
+                    <th>筆數</th>
+                    <th>平均單價</th>
+                    <th>新屋比例</th>
+                  </tr>
+                </thead>
+                <tbody id="liveRows">
+                  <tr>
+                    <td colspan="4">等待查詢</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
       </section>
 
       <section class="section dashboard" id="changhua">
@@ -152,17 +231,17 @@
             </a>
           </article>
           <article>
-            <h3>政府資料開放平臺</h3>
+            <h3>內政部實價登錄批次資料</h3>
             <p>
-              「各鄉鎮市區住宅使用情形」提供總計、有人經常居住、無人經常居住等欄位，單位為宅。
+              全台買賣交易 CSV ZIP，更新頻率為每日；本頁會依使用者選擇的縣市取出對應 CSV 檔並即時計算。
             </p>
-            <a href="https://data.gov.tw/dataset/162052" target="_blank" rel="noreferrer">
+            <a href="https://data.gov.tw/dataset/77051" target="_blank" rel="noreferrer">
               查看資料集
             </a>
           </article>
           <article>
             <h3>即時撈取狀態</h3>
-            <p id="dataStatus">尚未撈取。本頁先載入內建整理資料，按下重新撈公開資訊後會嘗試更新。</p>
+            <p id="dataStatus">上方全台地圖會直接抓取內政部實價登錄 CSV ZIP，並在瀏覽器端計算所選縣市指標。</p>
           </article>
         </div>
       </section>
@@ -173,6 +252,7 @@
       <span>GitHub Pages auto deploy ready</span>
     </footer>
 
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
     <script src="script.js"></script>
   </body>
 </html>

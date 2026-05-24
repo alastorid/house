@@ -5,6 +5,8 @@ GitHub Pages site for visualizing Taiwan housing information, with a Changhua di
 ## What is included
 
 - Static HTML/CSS/JS dashboard.
+- Live in-browser fetch from the MOI real-price registration CSV ZIP.
+- Taiwan county map with selectable point-of-interest metrics.
 - Changhua district search, sorting, table, and clickable SVG map.
 - Public-source references for MOI housing statistics and data.gov.tw housing usage data.
 - GitHub Actions workflow for automatic GitHub Pages deployment.
@@ -15,4 +17,4 @@ Open `index.html` directly in a browser, or run any static server from this fold
 
 ## Data note
 
-The page is designed to attempt live public-source checks in the browser, but government sites may block cross-origin fetches from GitHub Pages. The shipped dataset is an internal, display-ready dataset for the frontend and should be replaced with a verified processed export when exact official district-level figures are required.
+The live Taiwan map downloads the current MOI real-price registration CSV ZIP in the browser and computes selected county metrics client-side. The Changhua district panel keeps a display-ready local dataset for quick comparison and should be replaced with a verified processed export when exact official district-level housing-stock figures are required.

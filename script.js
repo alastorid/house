@@ -16,6 +16,32 @@ const nationalData = [
   },
 ];
 
+const liveDataUrl = "https://plvr.land.moi.gov.tw/Download?type=zip&fileName=lvr_landcsv.zip";
+const countyData = [
+  ["臺北市", "a", 210, 86, 70, 96],
+  ["新北市", "f", 184, 162, 98, 104],
+  ["桃園市", "h", 164, 258, 92, 90],
+  ["臺中市", "b", 176, 362, 104, 110],
+  ["臺南市", "d", 150, 498, 98, 106],
+  ["高雄市", "e", 174, 604, 112, 116],
+  ["基隆市", "c", 256, 42, 56, 52],
+  ["新竹市", "o", 122, 190, 54, 54],
+  ["新竹縣", "j", 86, 210, 74, 72],
+  ["苗栗縣", "k", 98, 302, 76, 86],
+  ["彰化縣", "n", 92, 414, 86, 100],
+  ["南投縣", "m", 172, 450, 72, 94],
+  ["雲林縣", "p", 92, 526, 80, 92],
+  ["嘉義市", "i", 146, 570, 48, 48],
+  ["嘉義縣", "q", 104, 594, 74, 78],
+  ["屏東縣", "t", 184, 664, 86, 92],
+  ["宜蘭縣", "g", 300, 170, 70, 90],
+  ["花蓮縣", "u", 300, 350, 72, 126],
+  ["臺東縣", "v", 284, 526, 74, 116],
+  ["澎湖縣", "x", 42, 614, 52, 48],
+  ["金門縣", "w", 44, 482, 52, 48],
+  ["連江縣", "z", 56, 82, 42, 42],
+].map(([name, code, x, y, w, h]) => ({ name, code, x, y, w, h }));
+
 const districts = [
   ["彰化市", 90200, 73500, 16700, 3520, 3.9, "縣內最大住宅量體，都市核心與重劃區共同推升新屋數。", 322, 210, 146, 108],
   ["員林市", 56100, 46100, 10000, 2650, 4.7, "南彰化生活圈核心，近年推案集中在車站與外環道路周邊。", 442, 326, 138, 100],
@@ -59,6 +85,8 @@ const districts = [
 
 const formatter = new Intl.NumberFormat("zh-TW");
 let selectedDistrict = districts[0].name;
+let selectedCounty = "彰化縣";
+const zipCache = new Map();
 
 function formatHomes(value) {
   return `${formatter.format(value)} 宅`;
@@ -85,6 +113,249 @@ function renderNationalCards() {
       `,
     )
     .join("");
+}
+
+function renderCountyOptions() {
+  const select = document.querySelector("#countySelect");
+  select.innerHTML = countyData
+    .map((county) => `<option value="${county.name}" ${county.name === selectedCounty ? "selected" : ""}>${county.name}</option>`)
+    .join("");
+}
+
+function renderTaiwanMap(metrics = new Map()) {
+  const svg = document.querySelector("#taiwanMap");
+  const maxCount = Math.max(1, ...Array.from(metrics.values()).map((item) => item.count || 0));
+  svg.innerHTML = `
+    <title id="taiwanMapTitle">台灣縣市互動地圖</title>
+    <desc id="taiwanMapDesc">點選縣市後可以抓取即時公開資料並計算住宅交易指標。</desc>
+    <path d="M245 28 C305 72 322 154 306 226 C345 292 332 374 304 448 C286 524 256 620 204 698 C160 626 118 548 100 470 C76 366 92 274 132 202 C150 124 180 62 245 28 Z" fill="#e6edf0" />
+    <text x="24" y="34" fill="#5d6b78" font-size="18" font-weight="800">Taiwan live map</text>
+    ${countyData
+      .map((county) => {
+        const item = metrics.get(county.name);
+        const intensity = item ? 0.28 + (item.count / maxCount) * 0.72 : 0;
+        const fill = item ? `rgba(31, 138, 112, ${intensity.toFixed(2)})` : "#dce5e8";
+        return `
+          <g data-county="${county.name}">
+            <rect class="county ${county.name === selectedCounty ? "active" : ""}"
+              x="${county.x}" y="${county.y}" width="${county.w}" height="${county.h}" rx="10"
+              fill="${fill}" tabindex="0" role="button"
+              aria-label="${county.name}，點選查詢即時資料"
+            />
+            <text class="county-label" x="${county.x + county.w / 2}" y="${county.y + county.h / 2 - 2}">${county.name}</text>
+            <text class="county-count" x="${county.x + county.w / 2}" y="${county.y + county.h / 2 + 18}">${item ? formatter.format(item.count) : "選取"}</text>
+          </g>
+        `;
+      })
+      .join("")}
+  `;
+
+  svg.querySelectorAll("[data-county]").forEach((group) => {
+    const name = group.dataset.county;
+    group.addEventListener("click", () => selectCounty(name));
+    group.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        selectCounty(name);
+      }
+    });
+  });
+}
+
+function selectCounty(name) {
+  selectedCounty = name;
+  document.querySelector("#countySelect").value = name;
+  renderTaiwanMap();
+  document.querySelector("#liveStatus").textContent = `${name} 已選取。按下「撈取並計算公開資料」取得即時資料。`;
+}
+
+function parseCsv(text) {
+  const rows = [];
+  let row = [];
+  let cell = "";
+  let quoted = false;
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index];
+    const next = text[index + 1];
+    if (char === '"' && quoted && next === '"') {
+      cell += '"';
+      index += 1;
+    } else if (char === '"') {
+      quoted = !quoted;
+    } else if (char === "," && !quoted) {
+      row.push(cell.trim());
+      cell = "";
+    } else if ((char === "\n" || char === "\r") && !quoted) {
+      if (char === "\r" && next === "\n") index += 1;
+      row.push(cell.trim());
+      if (row.some(Boolean)) rows.push(row);
+      row = [];
+      cell = "";
+    } else {
+      cell += char;
+    }
+  }
+  if (cell || row.length) {
+    row.push(cell.trim());
+    rows.push(row);
+  }
+  return rows;
+}
+
+function getNumber(value) {
+  const number = Number(String(value || "").replaceAll(",", "").replace(/[^\d.-]/g, ""));
+  return Number.isFinite(number) ? number : 0;
+}
+
+function getRocYear(value) {
+  const digits = String(value || "").replace(/\D/g, "");
+  if (digits.length < 5) return null;
+  const year = Number(digits.slice(0, digits.length === 7 ? 3 : 2));
+  return Number.isFinite(year) && year > 0 ? year : null;
+}
+
+function summarizeRows(rows) {
+  const headers = (rows[0] || []).map((header) => header.replace(/^\uFEFF/, ""));
+  const indices = {
+    target: headers.indexOf("交易標的"),
+    district: headers.indexOf("鄉鎮市區"),
+    unitPrice: headers.indexOf("單價元平方公尺"),
+    buildingType: headers.indexOf("建物型態"),
+    buildingDate: headers.indexOf("建築完成年月"),
+    transactionDate: headers.indexOf("交易年月日"),
+  };
+  const dataRows = rows
+    .slice(2)
+    .filter((row) => row.length > 8)
+    .filter((row) => indices.target === -1 || row[indices.target] !== "土地");
+  const currentRocYear = new Date().getFullYear() - 1911;
+  const byDistrict = new Map();
+  let unitPriceSum = 0;
+  let unitPriceCount = 0;
+  let newHomeCount = 0;
+  let residentialCount = 0;
+  let newestTransactionYear = 0;
+
+  dataRows.forEach((row) => {
+    const district = row[indices.district] || "未分類";
+    const unitPrice = getNumber(row[indices.unitPrice]);
+    const buildingYear = getRocYear(row[indices.buildingDate]);
+    const transactionYear = getRocYear(row[indices.transactionDate]);
+    const buildingType = row[indices.buildingType] || "";
+    const isNewHome = buildingYear !== null && currentRocYear - buildingYear <= 5;
+    const isResidential = /住宅|華廈|公寓|透天|套房|大樓/.test(buildingType);
+    if (unitPrice > 0) {
+      unitPriceSum += unitPrice;
+      unitPriceCount += 1;
+    }
+    if (isNewHome) newHomeCount += 1;
+    if (isResidential) residentialCount += 1;
+    if (transactionYear && transactionYear > newestTransactionYear) newestTransactionYear = transactionYear;
+
+    const existing = byDistrict.get(district) || { count: 0, unitPriceSum: 0, unitPriceCount: 0, newCount: 0 };
+    existing.count += 1;
+    if (unitPrice > 0) {
+      existing.unitPriceSum += unitPrice;
+      existing.unitPriceCount += 1;
+    }
+    if (isNewHome) existing.newCount += 1;
+    byDistrict.set(district, existing);
+  });
+
+  const districtRows = Array.from(byDistrict.entries())
+    .map(([district, item]) => ({
+      district,
+      count: item.count,
+      avgUnitPrice: item.unitPriceCount ? item.unitPriceSum / item.unitPriceCount : 0,
+      newRatio: item.count ? (item.newCount / item.count) * 100 : 0,
+    }))
+    .sort((a, b) => b.count - a.count);
+
+  return {
+    count: dataRows.length,
+    avgUnitPrice: unitPriceCount ? unitPriceSum / unitPriceCount : 0,
+    newHomeCount,
+    newHomeRatio: dataRows.length ? (newHomeCount / dataRows.length) * 100 : 0,
+    residentialCount,
+    newestTransactionYear,
+    districtRows,
+  };
+}
+
+async function loadCountyRows(county) {
+  if (zipCache.has(county.code)) return zipCache.get(county.code);
+  if (!window.JSZip) throw new Error("JSZip 尚未載入，請重新整理頁面後再試。");
+  const response = await fetch(liveDataUrl, { cache: "no-store" });
+  if (!response.ok) throw new Error(`公開資料下載失敗：HTTP ${response.status}`);
+  const zip = await JSZip.loadAsync(await response.arrayBuffer());
+  const fileName = `${county.code}_lvr_land_a.csv`;
+  const file =
+    zip.file(fileName) ||
+    zip.file(fileName.toUpperCase()) ||
+    Object.values(zip.files).find((entry) => entry.name.toLowerCase().endsWith(fileName));
+  if (!file) throw new Error(`ZIP 內找不到 ${fileName}`);
+  const rows = parseCsv(await file.async("string"));
+  zipCache.set(county.code, rows);
+  return rows;
+}
+
+function renderLiveSummary(summary, countyName) {
+  const poi = document.querySelector("#poiSelect").value;
+  const stats = document.querySelector("#liveStats");
+  const thirdLabel = poi === "residential" ? "住宅型態筆數" : "5 年內新屋";
+  const thirdValue =
+    poi === "residential"
+      ? `${formatter.format(summary.residentialCount)} 筆`
+      : `${summary.newHomeRatio.toFixed(1)}%`;
+  stats.innerHTML = `
+    <article>
+      <span class="metric-label">交易筆數</span>
+      <strong>${formatter.format(summary.count)}</strong>
+    </article>
+    <article>
+      <span class="metric-label">平均單價</span>
+      <strong>${formatter.format(Math.round(summary.avgUnitPrice))} 元/㎡</strong>
+    </article>
+    <article>
+      <span class="metric-label">${thirdLabel}</span>
+      <strong>${thirdValue}</strong>
+    </article>
+  `;
+  document.querySelector("#liveStatus").textContent =
+    `${countyName} 計算完成。最新交易年約為民國 ${summary.newestTransactionYear || "--"} 年，資料來自內政部實價登錄本期 CSV ZIP。`;
+  const rows = document.querySelector("#liveRows");
+  rows.innerHTML = summary.districtRows
+    .slice(0, 12)
+    .map(
+      (item) => `
+        <tr>
+          <td>${item.district}</td>
+          <td>${formatter.format(item.count)}</td>
+          <td>${item.avgUnitPrice ? `${formatter.format(Math.round(item.avgUnitPrice))} 元/㎡` : "--"}</td>
+          <td>${item.newRatio.toFixed(1)}%</td>
+        </tr>
+      `,
+    )
+    .join("");
+  renderTaiwanMap(new Map([[countyName, { count: summary.count }]]));
+}
+
+async function fetchLiveData() {
+  const button = document.querySelector("#fetchLiveData");
+  const status = document.querySelector("#liveStatus");
+  const county = countyData.find((item) => item.name === selectedCounty);
+  if (!county) return;
+  button.disabled = true;
+  status.textContent = `正在下載內政部實價登錄公開資料，並解析 ${county.name} CSV...`;
+  try {
+    const rows = await loadCountyRows(county);
+    const summary = summarizeRows(rows);
+    renderLiveSummary(summary, county.name);
+  } catch (error) {
+    status.textContent = `${county.name} 即時資料抓取失敗：${error.message}`;
+  } finally {
+    button.disabled = false;
+  }
 }
 
 function renderMap(data) {
@@ -176,34 +447,6 @@ function selectDistrict(name) {
   renderTable();
 }
 
-async function refreshPublicData() {
-  const status = document.querySelector("#dataStatus");
-  status.textContent = "正在嘗試連線政府公開資料來源...";
-
-  const endpoints = [
-    "https://data.gov.tw/dataset/162052",
-    "https://www.moi.gov.tw/News_Content.aspx?n=9&s=336898&sms=9009",
-  ];
-
-  const results = await Promise.allSettled(
-    endpoints.map((url) =>
-      fetch(url, { cache: "no-store", mode: "cors" }).then((response) => {
-        if (!response.ok) throw new Error(`${response.status}`);
-        return response.text();
-      }),
-    ),
-  );
-
-  const okCount = results.filter((result) => result.status === "fulfilled").length;
-  if (okCount === endpoints.length) {
-    status.textContent = `已成功連線 ${okCount} 個公開資料來源。由於政府資料格式跨站限制，本頁保留內建整理資料作為前端展示。`;
-  } else if (okCount > 0) {
-    status.textContent = `已連線 ${okCount} 個來源，部分來源被瀏覽器 CORS 或站台狀態擋下；目前仍使用內建整理資料。`;
-  } else {
-    status.textContent = "公開來源目前無法由瀏覽器直接讀取，已改用內建整理資料。";
-  }
-}
-
 document.querySelector("#districtSearch").addEventListener("input", () => {
   const data = getFilteredSortedData();
   if (data.length && !data.some((district) => district.name === selectedDistrict)) {
@@ -219,9 +462,19 @@ document.querySelector("#sortMode").addEventListener("change", () => {
   renderTable();
 });
 
-document.querySelector("#refreshData").addEventListener("click", refreshPublicData);
+document.querySelector("#countySelect").addEventListener("change", (event) => {
+  selectCounty(event.target.value);
+});
+
+document.querySelector("#poiSelect").addEventListener("change", () => {
+  document.querySelector("#liveStatus").textContent = `${selectedCounty} 指標已切換。按下按鈕重新計算。`;
+});
+
+document.querySelector("#fetchLiveData").addEventListener("click", fetchLiveData);
 
 renderNationalCards();
+renderCountyOptions();
+renderTaiwanMap();
 renderDetails();
 renderMap(districts);
 renderTable();
