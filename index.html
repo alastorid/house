@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>台灣新屋比例與彰化住宅地圖</title>
+    <meta
+      name="description"
+      content="用公開資料看台灣各縣市新屋比例，並查詢彰化各鄉鎮市住宅戶數與新屋概況。"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <nav class="topbar" aria-label="主選單">
+        <a class="brand" href="#top" aria-label="回到首頁">
+          <span class="brand-mark">TW</span>
+          <span>House Data Taiwan</span>
+        </a>
+        <div class="nav-links">
+          <a href="#taiwan">全台</a>
+          <a href="#changhua">彰化</a>
+          <a href="#sources">資料來源</a>
+        </div>
+      </nav>
+      <section class="hero" id="top">
+        <div class="hero-copy">
+          <p class="eyebrow">公開資料住宅觀測</p>
+          <h1>用公開數據看台灣各地區新屋比例</h1>
+          <p>
+            這個頁面整理「待售新成屋」、住宅存量與彰化各鄉鎮市住宅使用資料，並用 HTML
+            做成可以查詢、排序、比對的視覺化地圖。
+          </p>
+          <div class="hero-actions">
+            <a class="button primary" href="#changhua">查看彰化地圖</a>
+            <button class="button ghost" id="refreshData" type="button">重新撈公開資訊</button>
+          </div>
+        </div>
+        <div class="hero-panel" aria-label="資料概況">
+          <div>
+            <span class="metric-label">資料期</span>
+            <strong id="periodLabel">114 年上半年 / 114Q2</strong>
+          </div>
+          <div>
+            <span class="metric-label">待售新成屋</span>
+            <strong id="newHomeTotal">112,000+</strong>
+            <small>內政部統計通報摘要</small>
+          </div>
+          <div>
+            <span class="metric-label">彰化可查行政區</span>
+            <strong>26</strong>
+            <small>2 市、6 鎮、18 鄉</small>
+          </div>
+        </div>
+      </section>
+    </header>
+
+    <main>
+      <section class="section overview" id="taiwan">
+        <div class="section-title">
+          <p class="eyebrow">Taiwan</p>
+          <h2>全台新屋比例快照</h2>
+        </div>
+        <div class="stat-grid" id="nationalCards"></div>
+      </section>
+
+      <section class="section dashboard" id="changhua">
+        <div class="section-title">
+          <p class="eyebrow">Changhua</p>
+          <h2>彰化各區具體戶數與新屋比例</h2>
+        </div>
+
+        <div class="toolbar" aria-label="查詢工具列">
+          <label class="search-field">
+            <span>搜尋鄉鎮市</span>
+            <input id="districtSearch" type="search" placeholder="例：員林、彰化市、鹿港" />
+          </label>
+          <label class="select-field">
+            <span>排序</span>
+            <select id="sortMode">
+              <option value="ratio">新屋比例高到低</option>
+              <option value="newHomes">新屋戶數多到少</option>
+              <option value="totalHomes">住宅戶數多到少</option>
+              <option value="vacancy">空置比例高到低</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="map-layout">
+          <section class="map-card" aria-label="彰化地圖">
+            <svg id="changhuaMap" role="img" aria-labelledby="mapTitle mapDesc" viewBox="0 0 760 640">
+              <title id="mapTitle">彰化縣鄉鎮市新屋比例地圖</title>
+              <desc id="mapDesc">顏色越深代表新屋比例越高，點選區塊可查看具體戶數。</desc>
+            </svg>
+          </section>
+          <aside class="detail-panel" aria-live="polite">
+            <p class="eyebrow">Selected District</p>
+            <h3 id="selectedName">彰化市</h3>
+            <dl class="detail-list">
+              <div>
+                <dt>住宅總戶數</dt>
+                <dd id="selectedTotal">--</dd>
+              </div>
+              <div>
+                <dt>推估新屋戶數</dt>
+                <dd id="selectedNew">--</dd>
+              </div>
+              <div>
+                <dt>新屋比例</dt>
+                <dd id="selectedRatio">--</dd>
+              </div>
+              <div>
+                <dt>無人經常居住</dt>
+                <dd id="selectedVacant">--</dd>
+              </div>
+            </dl>
+            <p id="selectedNote" class="note"></p>
+          </aside>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>行政區</th>
+                <th>住宅戶數</th>
+                <th>有人經常居住</th>
+                <th>無人經常居住</th>
+                <th>推估新屋</th>
+                <th>新屋比例</th>
+              </tr>
+            </thead>
+            <tbody id="districtRows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="section sources" id="sources">
+        <div class="section-title">
+          <p class="eyebrow">Open Data</p>
+          <h2>公開資料來源與即時狀態</h2>
+        </div>
+        <div class="source-grid">
+          <article>
+            <h3>內政部不動產資訊平台</h3>
+            <p>
+              「待售新成屋」定義為屋齡 5 年內、仍維持第一次登記且具銷售可能性的住宅；統計通報顯示
+              114 年第 2 季待售新成屋宅數已緩增至 11.2 萬宅。
+            </p>
+            <a href="https://www.moi.gov.tw/News_Content.aspx?n=9&s=336898&sms=9009" target="_blank" rel="noreferrer">
+              查看內政部統計通報
+            </a>
+          </article>
+          <article>
+            <h3>政府資料開放平臺</h3>
+            <p>
+              「各鄉鎮市區住宅使用情形」提供總計、有人經常居住、無人經常居住等欄位，單位為宅。
+            </p>
+            <a href="https://data.gov.tw/dataset/162052" target="_blank" rel="noreferrer">
+              查看資料集
+            </a>
+          </article>
+          <article>
+            <h3>即時撈取狀態</h3>
+            <p id="dataStatus">尚未撈取。本頁先載入內建整理資料，按下重新撈公開資訊後會嘗試更新。</p>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <span>House Data Taiwan</span>
+      <span>GitHub Pages auto deploy ready</span>
+    </footer>
+
+    <script src="script.js"></script>
+  </body>
+</html>
