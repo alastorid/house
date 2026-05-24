@@ -1,13 +1,12 @@
 {
   "sourcePage": "https://segis.moi.gov.tw/STATCloud/QueryInterfaceView?COL=CC2HBmJVqP%252fIpaJ3ipfNUw%253d%253d&MCOL=LumnmerulLcB%252bBLmWOEuNw%253d%253d",
   "downloadUrl": "https://segis.moi.gov.tw/STATCloud/reqcontroller.file?method=filedown.downloadproductfile&code=LumnmerulLcB%2bBLmWOEuNw%3d%3d&STTIME=114Y2S&STUNIT=U01CO&BOUNDARY=%E5%85%A8%E5%9C%8B",
-  "originalCsvName": "114年第2季行政區房屋稅籍住宅類數量依屋齡區分_縣市.csv",
-  "fetchedAt": "2026-05-24T18:09:06.937495+00:00",
+  "fetchedAt": "2026-05-24T18:24:03.736713+00:00",
   "period": "114Y2S",
   "year": "114",
   "season": "2S",
   "files": [
-    "data/114/2S/house-age-county.csv",
+    "data/114-2S/house-age-county.csv",
     "data/latest/house-age-county.csv"
   ]
 }

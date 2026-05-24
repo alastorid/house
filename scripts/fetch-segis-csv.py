@@ -50,37 +50,58 @@ def normalized_period(rows: list[list[str]]) -> tuple[str, str]:
 
 
 def main() -> None:
-    csv_name, csv_bytes = extract_csv(download())
-    text = csv_bytes.decode("utf-8-sig")
-    rows = list(csv.reader(text.splitlines()))
-    year, season = normalized_period(rows)
+    zip_bytes = download()
+    with zipfile.ZipFile(BytesIO(zip_bytes)) as archive:
+        csv_names = [name for name in archive.namelist() if name.lower().endswith(".csv")]
+        if not csv_names:
+            raise RuntimeError("No CSV found in downloaded ZIP")
+        
+        # We'll use the first CSV to determine the year and season
+        first_csv_text = archive.read(csv_names[0]).decode("utf-8-sig")
+        rows = list(csv.reader(first_csv_text.splitlines()))
+        year, season = normalized_period(rows)
+        
+        period_name = f"{year}-{season}"
+        target_dir = ROOT / "data" / period_name
+        target_dir.mkdir(parents=True, exist_ok=True)
+        
+        manifest_files = []
+        
+        for name in csv_names:
+            csv_bytes = archive.read(name)
+            filename = Path(name).name
+            # Simplified filename for the repo
+            if "縣市" in filename:
+                repo_name = "house-age-county.csv"
+            elif "鄉鎮市區" in filename:
+                repo_name = "house-age-township.csv"
+            else:
+                repo_name = filename
+            
+            target_csv = target_dir / repo_name
+            target_csv.write_text(csv_bytes.decode("utf-8-sig"), encoding="utf-8")
+            
+            # Update latest copy
+            LATEST_DIR.mkdir(parents=True, exist_ok=True)
+            latest_csv = LATEST_DIR / repo_name
+            shutil.copyfile(target_csv, latest_csv)
+            
+            manifest_files.append(str(target_csv.relative_to(ROOT)))
+            manifest_files.append(str(latest_csv.relative_to(ROOT)))
+            print(f"Extracted {filename} -> {target_csv.relative_to(ROOT)}")
 
-    target_dir = ROOT / "data" / year / season
-    target_dir.mkdir(parents=True, exist_ok=True)
-    target_csv = target_dir / "house-age-county.csv"
-    target_csv.write_text(text, encoding="utf-8")
-
-    LATEST_DIR.mkdir(parents=True, exist_ok=True)
-    latest_csv = LATEST_DIR / "house-age-county.csv"
-    shutil.copyfile(target_csv, latest_csv)
-
-    manifest = {
-        "sourcePage": "https://segis.moi.gov.tw/STATCloud/QueryInterfaceView?COL=CC2HBmJVqP%252fIpaJ3ipfNUw%253d%253d&MCOL=LumnmerulLcB%252bBLmWOEuNw%253d%253d",
-        "downloadUrl": CSV_ZIP_URL,
-        "originalCsvName": csv_name,
-        "fetchedAt": datetime.now(timezone.utc).isoformat(),
-        "period": f"{year}Y{season}",
-        "year": year,
-        "season": season,
-        "files": [
-            str(target_csv.relative_to(ROOT)),
-            str(latest_csv.relative_to(ROOT)),
-        ],
-    }
-    manifest_text = json.dumps(manifest, ensure_ascii=False, indent=2) + "\n"
-    (target_dir / "manifest.json").write_text(manifest_text, encoding="utf-8")
-    (LATEST_DIR / "manifest.json").write_text(manifest_text, encoding="utf-8")
-    print(f"Extracted {csv_name} -> {target_csv.relative_to(ROOT)}")
+        manifest = {
+            "sourcePage": "https://segis.moi.gov.tw/STATCloud/QueryInterfaceView?COL=CC2HBmJVqP%252fIpaJ3ipfNUw%253d%253d&MCOL=LumnmerulLcB%252bBLmWOEuNw%253d%253d",
+            "downloadUrl": CSV_ZIP_URL,
+            "fetchedAt": datetime.now(timezone.utc).isoformat(),
+            "period": f"{year}Y{season}",
+            "year": year,
+            "season": season,
+            "files": manifest_files,
+        }
+        manifest_text = json.dumps(manifest, ensure_ascii=False, indent=2) + "\n"
+        (target_dir / "manifest.json").write_text(manifest_text, encoding="utf-8")
+        (LATEST_DIR / "manifest.json").write_text(manifest_text, encoding="utf-8")
 
 
 if __name__ == "__main__":

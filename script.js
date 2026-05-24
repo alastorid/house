@@ -1,24 +1,6 @@
 const countyDataPath = "data/latest/house-age-county.csv";
 const countyManifestPath = "data/latest/manifest.json";
 
-const countySnapshot = {
-  period: "114Y2S",
-  total: 425964,
-  avgAge: 37.8,
-  buckets: [
-    ["1年以下", 5958],
-    ["1-5年", 17231],
-    ["5-10年", 18008],
-    ["10-15年", 14107],
-    ["15-20年", 17024],
-    ["20-25年", 16248],
-    ["25-30年", 48279],
-    ["30-40年", 92910],
-    ["40-50年", 106128],
-    ["50年以上", 90071],
-  ],
-};
-
 const districtData = [
   { name: "彰化市", total: 80726, under10: 4505, age10to20: 7072, age20to30: 21045, age30to40: 16000, age40to50: 23193, over50: 8911, avgAge: 34, avgArea: 49.41, x: 322, y: 210, w: 146, h: 108 },
   { name: "鹿港鎮", total: 27274, under10: 2618, age10to20: 2046, age20to30: 7034, age30to40: 4522, age40to50: 6344, over50: 4710, avgAge: 36, avgArea: 53.55, x: 164, y: 258, w: 112, h: 92 },
@@ -134,7 +116,15 @@ function colorFor(value, min, max, metric) {
   return `hsl(${42 - t * 20} 76% ${78 - t * 34}%)`;
 }
 
-function renderCounty(data = countySnapshot) {
+function renderCounty(data) {
+  if (!data) {
+    document.querySelector("#periodLabel").textContent = "讀取中...";
+    document.querySelector("#countyTotal").textContent = "--";
+    document.querySelector("#countyAvgAge").textContent = "--";
+    document.querySelector("#countyUnder5").textContent = "--";
+    document.querySelector("#countyBars").innerHTML = '<p class="loading-placeholder">請稍候，正在載入最新資料...</p>';
+    return;
+  }
   document.querySelector("#periodLabel").textContent = data.period;
   document.querySelector("#countyTotal").textContent = homes(data.total);
   document.querySelector("#countyAvgAge").textContent = `${data.avgAge.toFixed(2)} 年`;
@@ -170,8 +160,7 @@ async function refreshCounty() {
     const fetched = manifest?.fetchedAt ? `，抓取時間 ${new Date(manifest.fetchedAt).toLocaleString("zh-TW")}` : "";
     status.textContent = `已讀取 CSV：${data.period}${fetched}。GitHub Actions 會定期下載 SEGIS ZIP、抽出 CSV 並部署到本站。`;
   } catch (error) {
-    renderCounty();
-    status.textContent = `CSV 讀取失敗，顯示內建快照。原因：${error.message}`;
+    status.textContent = `CSV 讀取失敗。原因：${error.message}`;
   }
 }
 
@@ -282,8 +271,9 @@ document.querySelector("#districtSearch").addEventListener("input", () => {
 });
 document.querySelector("#metricSelect").addEventListener("change", renderMap);
 
-renderCounty();
-refreshCounty();
+// Initial Load
+renderCounty(); // Show loading state
+refreshCounty(); // Fetch and update
 renderDetails();
 renderMap();
 renderTable();
