@@ -1,0 +1,50 @@
+{
+  "source": "內政部社會經濟資料服務平台 SEGIS",
+  "sourceUrl": "https://segisws.moi.gov.tw/STATWSSTData/OpenService.asmx/GetAdminSTDataForOpenCode?oCode=88641597DE2A496B3B5AF84EB79808624B4FA5171FA6518DB327184AC9041FEF07D0ADAFDAF79C0DD8BBECC4B34231B0",
+  "fetchedAt": "2026-05-24T17:56:58.358Z",
+  "period": "114Y4S",
+  "total": 428352,
+  "avgAge": 37.56,
+  "buckets": [
+    [
+      "1年以下",
+      8523
+    ],
+    [
+      "1-5年",
+      17370
+    ],
+    [
+      "5-10年",
+      17999
+    ],
+    [
+      "10-15年",
+      14097
+    ],
+    [
+      "15-20年",
+      17030
+    ],
+    [
+      "20-25年",
+      16243
+    ],
+    [
+      "25-30年",
+      48242
+    ],
+    [
+      "30-40年",
+      92852
+    ],
+    [
+      "40-50年",
+      106074
+    ],
+    [
+      "50年以上",
+      89922
+    ]
+  ]
+}

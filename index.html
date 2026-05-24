@@ -47,6 +47,10 @@
             <span class="metric-label">住宅平均屋齡</span>
             <strong id="countyAvgAge">37.56 年</strong>
           </div>
+          <div>
+            <span class="metric-label">5 年內住宅</span>
+            <strong id="countyUnder5">25,893 宅</strong>
+          </div>
         </div>
       </section>
     </header>
@@ -58,10 +62,10 @@
             <p class="eyebrow">County Exact Counts</p>
             <h2>彰化縣整體屋齡戶數</h2>
           </div>
-          <button class="button dark" id="refreshCounty" type="button">重新抓取公開資料</button>
+          <button class="button dark" id="refreshCounty" type="button">重新讀取本站資料</button>
         </div>
         <p class="note" id="countyStatus">
-          目前顯示內政部社會經濟資料服務平台公開服務資料。若瀏覽器跨站請求被擋，會保留本頁內建的同來源快照。
+          GitHub Actions 會定期抓取 SEGIS 公開資料並更新本站 JSON；瀏覽器只讀同網域檔案，因此不會遇到 CORS。
         </p>
         <div class="age-bars" id="countyBars"></div>
       </section>
@@ -73,7 +77,7 @@
             <h2>彰化各鄉鎮市具體戶數</h2>
           </div>
           <p class="section-kicker">
-            鄉鎮市資料採彰化縣政府主計處住宅分析表 2-4。戶數由表中總宅數與屋齡占比換算，並校正至各區總宅數。
+            鄉鎮市資料採彰化縣政府主計處住宅分析表 2-4 與表 2-5。屋齡與坪數戶數由官方總宅數與占比換算，並校正至各區總宅數。
           </p>
         </div>
 
@@ -88,6 +92,7 @@
               <option value="over50Share">50 年以上占比</option>
               <option value="under10Share">10 年以下占比</option>
               <option value="avgAge">平均屋齡</option>
+              <option value="avgArea">平均坪數</option>
               <option value="total">總宅數</option>
             </select>
           </label>
@@ -106,6 +111,7 @@
             <dl class="detail-list">
               <div><dt>總宅數</dt><dd id="selectedTotal">--</dd></div>
               <div><dt>平均屋齡</dt><dd id="selectedAvg">--</dd></div>
+              <div><dt>平均坪數</dt><dd id="selectedArea">--</dd></div>
               <div><dt>10 年以下</dt><dd id="selectedYoung">--</dd></div>
               <div><dt>30 年以上</dt><dd id="selectedOld30">--</dd></div>
               <div><dt>50 年以上</dt><dd id="selectedOld50">--</dd></div>
@@ -120,6 +126,7 @@
                 <th>行政區</th>
                 <th>總宅數</th>
                 <th>平均屋齡</th>
+                <th>平均坪數</th>
                 <th>10年以下</th>
                 <th>10-20年</th>
                 <th>20-30年</th>
@@ -149,9 +156,9 @@
           <article>
             <h3>彰化縣住宅分析</h3>
             <p>
-              彰化縣政府主計處編印，表 2-4 提供各鄉鎮市房屋稅籍住宅類總數、屋齡占比與平均屋齡。
+              彰化縣政府主計處編印，表 2-4 提供各鄉鎮市總數、屋齡占比與平均屋齡；表 2-5 提供坪數分布與平均面積。
             </p>
-            <a href="https://files.chcg.gov.tw/files/16_20221220095343596_%E5%BD%B0%E5%8C%96%E7%B8%A3%E4%BD%8F%E5%AE%85%E5%88%86%E6%9E%90_2025.pdf" target="_blank" rel="noreferrer">查看 PDF</a>
+            <a href="https://ctrl.chcg.gov.tw/files/16_20221220095343596_%E5%BD%B0%E5%8C%96%E7%B8%A3%E4%BD%8F%E5%AE%85%E5%88%86%E6%9E%90_2025.pdf" target="_blank" rel="noreferrer">查看 PDF</a>
           </article>
         </div>
       </section>
