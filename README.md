@@ -1,20 +1,15 @@
-# House Data Taiwan
+# Changhua Housing Age
 
-GitHub Pages site for visualizing Taiwan housing information, with a Changhua district map and public-data source links.
+Focused GitHub Pages site for Changhua County housing age and household-count data.
 
 ## What is included
 
-- Static HTML/CSS/JS dashboard.
-- Live in-browser fetch from the MOI real-price registration CSV ZIP.
-- Taiwan county map with selectable point-of-interest metrics.
-- Changhua district search, sorting, table, and clickable SVG map.
-- Public-source references for MOI housing statistics and data.gov.tw housing usage data.
+- Changhua-only landing page.
+- Exact county-level housing age buckets from the MOI SEGIS open service snapshot.
+- Changhua township/city table and map based on Changhua County Government housing analysis table 2-4.
+- Search, metric coloring, and selected-area detail panel.
 - GitHub Actions workflow for automatic GitHub Pages deployment.
-
-## Local preview
-
-Open `index.html` directly in a browser, or run any static server from this folder.
 
 ## Data note
 
-The live Taiwan map downloads the current MOI real-price registration CSV ZIP in the browser and computes selected county metrics client-side. The Changhua district panel keeps a display-ready local dataset for quick comparison and should be replaced with a verified processed export when exact official district-level housing-stock figures are required.
+County-level counts use SEGIS fields for housing-tax residential stock by age bucket. Township-level counts are calculated from the official Changhua County Government published total housing stock and age-percentage table, then adjusted to each township total.

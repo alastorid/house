@@ -3,197 +3,113 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>台灣新屋比例與彰化住宅地圖</title>
-    <meta
-      name="description"
-      content="用公開資料看台灣各縣市新屋比例，並查詢彰化各鄉鎮市住宅戶數與新屋概況。"
-    />
+    <title>彰化住宅屋齡與戶數</title>
+    <meta name="description" content="彰化縣房屋稅籍住宅類數量、屋齡分布與各鄉鎮市具體戶數。" />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <header class="site-header">
       <nav class="topbar" aria-label="主選單">
         <a class="brand" href="#top" aria-label="回到首頁">
-          <span class="brand-mark">TW</span>
-          <span>House Data Taiwan</span>
+          <span class="brand-mark">CH</span>
+          <span>Changhua Housing Age</span>
         </a>
         <div class="nav-links">
-          <a href="#taiwan-live">即時地圖</a>
-          <a href="#changhua">彰化</a>
-          <a href="#sources">資料來源</a>
+          <a href="#county">縣級屋齡</a>
+          <a href="#districts">鄉鎮市戶數</a>
+          <a href="#sources">來源</a>
         </div>
       </nav>
+
       <section class="hero" id="top">
         <div class="hero-copy">
-          <p class="eyebrow">公開資料住宅觀測</p>
-          <h1>用公開數據看台灣各地區新屋比例</h1>
+          <p class="eyebrow">彰化縣住宅資料</p>
+          <h1>彰化的房子到底多老？</h1>
           <p>
-            這個頁面整理「待售新成屋」、住宅存量與彰化各鄉鎮市住宅使用資料，並用 HTML
-            做成可以查詢、排序、比對的視覺化地圖。
+            聚焦彰化縣房屋稅籍住宅類資料，直接看屋齡分布、具體戶數，以及各鄉鎮市
+            50 年以上老屋與 10 年以下新屋占比。
           </p>
           <div class="hero-actions">
-            <a class="button primary" href="#taiwan-live">查全台即時資料</a>
-            <a class="button ghost" href="#changhua">查看彰化地圖</a>
+            <a class="button primary" href="#county">看縣級實數</a>
+            <a class="button ghost" href="#districts">查鄉鎮市</a>
           </div>
         </div>
-        <div class="hero-panel" aria-label="資料概況">
+        <div class="hero-panel" aria-label="彰化住宅摘要">
           <div>
-            <span class="metric-label">資料期</span>
-            <strong id="periodLabel">114 年上半年 / 114Q2</strong>
+            <span class="metric-label">最新縣級資料期</span>
+            <strong id="periodLabel">114Y4S</strong>
           </div>
           <div>
-            <span class="metric-label">待售新成屋</span>
-            <strong id="newHomeTotal">112,000+</strong>
-            <small>內政部統計通報摘要</small>
+            <span class="metric-label">房屋稅籍住宅類數量</span>
+            <strong id="countyTotal">428,352 宅</strong>
           </div>
           <div>
-            <span class="metric-label">彰化可查行政區</span>
-            <strong>26</strong>
-            <small>2 市、6 鎮、18 鄉</small>
+            <span class="metric-label">住宅平均屋齡</span>
+            <strong id="countyAvgAge">37.56 年</strong>
           </div>
         </div>
       </section>
     </header>
 
     <main>
-      <section class="section overview" id="taiwan">
-        <div class="section-title">
-          <p class="eyebrow">Taiwan</p>
-          <h2>全台新屋比例快照</h2>
-        </div>
-        <div class="stat-grid" id="nationalCards"></div>
-      </section>
-
-      <section class="section live-map" id="taiwan-live">
+      <section class="section" id="county">
         <div class="section-title">
           <div>
-            <p class="eyebrow">Live Open Data</p>
-            <h2>全台即時公開資料地圖</h2>
+            <p class="eyebrow">County Exact Counts</p>
+            <h2>彰化縣整體屋齡戶數</h2>
           </div>
-          <p class="section-kicker">
-            選擇縣市與關注指標，網頁會直接連到內政部實價登錄開放資料 ZIP，解壓 CSV 後在瀏覽器端計算。
-          </p>
+          <button class="button dark" id="refreshCounty" type="button">重新抓取公開資料</button>
         </div>
-
-        <div class="live-layout">
-          <section class="map-card taiwan-card" aria-label="台灣地圖">
-            <svg id="taiwanMap" role="img" aria-labelledby="taiwanMapTitle taiwanMapDesc" viewBox="0 0 420 720">
-              <title id="taiwanMapTitle">台灣縣市互動地圖</title>
-              <desc id="taiwanMapDesc">點選縣市後可以抓取即時公開資料並計算住宅交易指標。</desc>
-            </svg>
-          </section>
-
-          <section class="live-panel" aria-label="即時資料查詢">
-            <div class="toolbar compact" aria-label="即時查詢工具列">
-              <label class="select-field">
-                <span>縣市</span>
-                <select id="countySelect"></select>
-              </label>
-              <label class="select-field">
-                <span>關注指標</span>
-                <select id="poiSelect">
-                  <option value="market">近期買賣交易概況</option>
-                  <option value="new">5 年內新屋交易比例</option>
-                  <option value="residential">住宅型態交易量</option>
-                </select>
-              </label>
-            </div>
-
-            <button class="button primary dark" id="fetchLiveData" type="button">撈取並計算公開資料</button>
-            <p class="note" id="liveStatus">尚未抓取。點選地圖或選擇縣市後按下按鈕開始。</p>
-
-            <div class="live-stats" id="liveStats">
-              <article>
-                <span class="metric-label">交易筆數</span>
-                <strong>--</strong>
-              </article>
-              <article>
-                <span class="metric-label">平均單價</span>
-                <strong>--</strong>
-              </article>
-              <article>
-                <span class="metric-label">5 年內新屋</span>
-                <strong>--</strong>
-              </article>
-            </div>
-
-            <div class="network-box">
-              <h3>Live network request</h3>
-              <code id="liveEndpoint">https://plvr.land.moi.gov.tw/Download?type=zip&amp;fileName=lvr_landcsv.zip</code>
-            </div>
-
-            <div class="table-wrap compact-table">
-              <table>
-                <thead>
-                  <tr>
-                    <th>鄉鎮市區</th>
-                    <th>筆數</th>
-                    <th>平均單價</th>
-                    <th>新屋比例</th>
-                  </tr>
-                </thead>
-                <tbody id="liveRows">
-                  <tr>
-                    <td colspan="4">等待查詢</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </section>
-        </div>
+        <p class="note" id="countyStatus">
+          目前顯示內政部社會經濟資料服務平台公開服務資料。若瀏覽器跨站請求被擋，會保留本頁內建的同來源快照。
+        </p>
+        <div class="age-bars" id="countyBars"></div>
       </section>
 
-      <section class="section dashboard" id="changhua">
+      <section class="section" id="districts">
         <div class="section-title">
-          <p class="eyebrow">Changhua</p>
-          <h2>彰化各區具體戶數與新屋比例</h2>
+          <div>
+            <p class="eyebrow">Township Detail</p>
+            <h2>彰化各鄉鎮市具體戶數</h2>
+          </div>
+          <p class="section-kicker">
+            鄉鎮市資料採彰化縣政府主計處住宅分析表 2-4。戶數由表中總宅數與屋齡占比換算，並校正至各區總宅數。
+          </p>
         </div>
 
         <div class="toolbar" aria-label="查詢工具列">
           <label class="search-field">
             <span>搜尋鄉鎮市</span>
-            <input id="districtSearch" type="search" placeholder="例：員林、彰化市、鹿港" />
+            <input id="districtSearch" type="search" placeholder="例：彰化市、員林、鹿港" />
           </label>
           <label class="select-field">
-            <span>排序</span>
-            <select id="sortMode">
-              <option value="ratio">新屋比例高到低</option>
-              <option value="newHomes">新屋戶數多到少</option>
-              <option value="totalHomes">住宅戶數多到少</option>
-              <option value="vacancy">空置比例高到低</option>
+            <span>地圖顏色</span>
+            <select id="metricSelect">
+              <option value="over50Share">50 年以上占比</option>
+              <option value="under10Share">10 年以下占比</option>
+              <option value="avgAge">平均屋齡</option>
+              <option value="total">總宅數</option>
             </select>
           </label>
         </div>
 
         <div class="map-layout">
-          <section class="map-card" aria-label="彰化地圖">
+          <section class="map-card" aria-label="彰化縣鄉鎮市示意地圖">
             <svg id="changhuaMap" role="img" aria-labelledby="mapTitle mapDesc" viewBox="0 0 760 640">
-              <title id="mapTitle">彰化縣鄉鎮市新屋比例地圖</title>
-              <desc id="mapDesc">顏色越深代表新屋比例越高，點選區塊可查看具體戶數。</desc>
+              <title id="mapTitle">彰化縣鄉鎮市屋齡地圖</title>
+              <desc id="mapDesc">點選鄉鎮市查看屋齡戶數。</desc>
             </svg>
           </section>
           <aside class="detail-panel" aria-live="polite">
-            <p class="eyebrow">Selected District</p>
+            <p class="eyebrow">Selected Area</p>
             <h3 id="selectedName">彰化市</h3>
             <dl class="detail-list">
-              <div>
-                <dt>住宅總戶數</dt>
-                <dd id="selectedTotal">--</dd>
-              </div>
-              <div>
-                <dt>推估新屋戶數</dt>
-                <dd id="selectedNew">--</dd>
-              </div>
-              <div>
-                <dt>新屋比例</dt>
-                <dd id="selectedRatio">--</dd>
-              </div>
-              <div>
-                <dt>無人經常居住</dt>
-                <dd id="selectedVacant">--</dd>
-              </div>
+              <div><dt>總宅數</dt><dd id="selectedTotal">--</dd></div>
+              <div><dt>平均屋齡</dt><dd id="selectedAvg">--</dd></div>
+              <div><dt>10 年以下</dt><dd id="selectedYoung">--</dd></div>
+              <div><dt>30 年以上</dt><dd id="selectedOld30">--</dd></div>
+              <div><dt>50 年以上</dt><dd id="selectedOld50">--</dd></div>
             </dl>
-            <p id="selectedNote" class="note"></p>
           </aside>
         </div>
 
@@ -202,11 +118,14 @@
             <thead>
               <tr>
                 <th>行政區</th>
-                <th>住宅戶數</th>
-                <th>有人經常居住</th>
-                <th>無人經常居住</th>
-                <th>推估新屋</th>
-                <th>新屋比例</th>
+                <th>總宅數</th>
+                <th>平均屋齡</th>
+                <th>10年以下</th>
+                <th>10-20年</th>
+                <th>20-30年</th>
+                <th>30-40年</th>
+                <th>40-50年</th>
+                <th>50年以上</th>
               </tr>
             </thead>
             <tbody id="districtRows"></tbody>
@@ -216,43 +135,33 @@
 
       <section class="section sources" id="sources">
         <div class="section-title">
-          <p class="eyebrow">Open Data</p>
-          <h2>公開資料來源與即時狀態</h2>
+          <p class="eyebrow">Sources</p>
+          <h2>資料來源</h2>
         </div>
         <div class="source-grid">
           <article>
-            <h3>內政部不動產資訊平台</h3>
+            <h3>內政部社會經濟資料服務平台</h3>
             <p>
-              「待售新成屋」定義為屋齡 5 年內、仍維持第一次登記且具銷售可能性的住宅；統計通報顯示
-              114 年第 2 季待售新成屋宅數已緩增至 11.2 萬宅。
+              行政區房屋稅籍住宅類數量依屋齡區分統計；縣級欄位含總宅數、平均屋齡與各屋齡級距宅數。
             </p>
-            <a href="https://www.moi.gov.tw/News_Content.aspx?n=9&s=336898&sms=9009" target="_blank" rel="noreferrer">
-              查看內政部統計通報
-            </a>
+            <a href="https://segis.moi.gov.tw/STATCloud/QueryInterfaceView?COL=CC2HBmJVqP%252fIpaJ3ipfNUw%253d%253d&MCOL=LumnmerulLcB%252bBLmWOEuNw%253d%253d" target="_blank" rel="noreferrer">查看資料集</a>
           </article>
           <article>
-            <h3>內政部實價登錄批次資料</h3>
+            <h3>彰化縣住宅分析</h3>
             <p>
-              全台買賣交易 CSV ZIP，更新頻率為每日；本頁會依使用者選擇的縣市取出對應 CSV 檔並即時計算。
+              彰化縣政府主計處編印，表 2-4 提供各鄉鎮市房屋稅籍住宅類總數、屋齡占比與平均屋齡。
             </p>
-            <a href="https://data.gov.tw/dataset/77051" target="_blank" rel="noreferrer">
-              查看資料集
-            </a>
-          </article>
-          <article>
-            <h3>即時撈取狀態</h3>
-            <p id="dataStatus">上方全台地圖會直接抓取內政部實價登錄 CSV ZIP，並在瀏覽器端計算所選縣市指標。</p>
+            <a href="https://files.chcg.gov.tw/files/16_20221220095343596_%E5%BD%B0%E5%8C%96%E7%B8%A3%E4%BD%8F%E5%AE%85%E5%88%86%E6%9E%90_2025.pdf" target="_blank" rel="noreferrer">查看 PDF</a>
           </article>
         </div>
       </section>
     </main>
 
     <footer class="footer">
-      <span>House Data Taiwan</span>
-      <span>GitHub Pages auto deploy ready</span>
+      <span>Changhua Housing Age</span>
+      <span>GitHub Pages</span>
     </footer>
 
-    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
     <script src="script.js"></script>
   </body>
 </html>

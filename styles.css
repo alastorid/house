@@ -140,6 +140,12 @@ a {
   background: #fff;
 }
 
+.button.dark {
+  color: #fff;
+  border-color: var(--teal);
+  background: var(--teal);
+}
+
 .button.primary.dark {
   width: 100%;
   margin: 12px 0;
@@ -211,6 +217,47 @@ a {
   max-width: 520px;
   margin: 0;
   color: var(--muted);
+}
+
+.age-bars {
+  display: grid;
+  gap: 12px;
+}
+
+.age-row {
+  display: grid;
+  grid-template-columns: 210px minmax(0, 1fr);
+  gap: 18px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 16px;
+  background: var(--panel);
+  box-shadow: 0 10px 32px rgba(23, 33, 43, 0.06);
+}
+
+.age-row strong,
+.age-row span {
+  display: block;
+}
+
+.age-row span {
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.bar-track {
+  overflow: hidden;
+  height: 18px;
+  border-radius: 999px;
+  background: #e5ecec;
+}
+
+.bar-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--green), var(--gold));
 }
 
 .stat-grid,
@@ -547,6 +594,10 @@ tbody tr.active {
   .source-grid,
   .live-stats,
   .toolbar.compact {
+    grid-template-columns: 1fr;
+  }
+
+  .age-row {
     grid-template-columns: 1fr;
   }
 
