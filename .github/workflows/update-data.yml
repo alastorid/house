@@ -24,19 +24,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
-      - name: Fetch SEGIS data
-        run: node scripts/fetch-changhua-age.mjs
+      - name: Fetch and extract SEGIS CSV
+        run: python3 scripts/fetch-segis-csv.py
 
       - name: Commit updated data
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: Update Changhua housing age data
-          file_pattern: data/changhua-county-age.json
+          commit_message: Update SEGIS housing age CSV
+          file_pattern: data/**/*.csv data/**/*.json
 
       - name: Setup Pages
         uses: actions/configure-pages@v5

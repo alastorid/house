@@ -1,20 +1,21 @@
-const countyDataPath = "data/changhua-county-age.json";
+const countyDataPath = "data/latest/house-age-county.csv";
+const countyManifestPath = "data/latest/manifest.json";
 
 const countySnapshot = {
-  period: "114Y4S",
-  total: 428352,
-  avgAge: 37.56,
+  period: "114Y2S",
+  total: 425964,
+  avgAge: 37.8,
   buckets: [
-    ["1年以下", 8523],
-    ["1-5年", 17370],
-    ["5-10年", 17999],
-    ["10-15年", 14097],
-    ["15-20年", 17030],
-    ["20-25年", 16243],
-    ["25-30年", 48242],
-    ["30-40年", 92852],
-    ["40-50年", 106074],
-    ["50年以上", 89922],
+    ["1年以下", 5958],
+    ["1-5年", 17231],
+    ["5-10年", 18008],
+    ["10-15年", 14107],
+    ["15-20年", 17024],
+    ["20-25年", 16248],
+    ["25-30年", 48279],
+    ["30-40年", 92910],
+    ["40-50年", 106128],
+    ["50年以上", 90071],
   ],
 };
 
@@ -58,6 +59,66 @@ function homes(value) {
   return `${formatter.format(value)} 宅`;
 }
 
+function parseCsv(text) {
+  const rows = [];
+  let row = [];
+  let cell = "";
+  let quoted = false;
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index];
+    const next = text[index + 1];
+    if (char === '"' && quoted && next === '"') {
+      cell += '"';
+      index += 1;
+    } else if (char === '"') {
+      quoted = !quoted;
+    } else if (char === "," && !quoted) {
+      row.push(cell.trim());
+      cell = "";
+    } else if ((char === "\n" || char === "\r") && !quoted) {
+      if (char === "\r" && next === "\n") index += 1;
+      row.push(cell.trim().replace(/^\uFEFF/, ""));
+      if (row.some(Boolean)) rows.push(row);
+      row = [];
+      cell = "";
+    } else {
+      cell += char;
+    }
+  }
+  if (cell || row.length) {
+    row.push(cell.trim().replace(/^\uFEFF/, ""));
+    rows.push(row);
+  }
+  return rows;
+}
+
+function countyFromCsv(text) {
+  const rows = parseCsv(text);
+  const header = rows[0];
+  const records = rows.slice(2);
+  const index = Object.fromEntries(header.map((name, position) => [name, position]));
+  const row = records.find((record) => record[index.COUNTY] === "彰化縣");
+  if (!row) throw new Error("CSV 裡找不到彰化縣");
+  const number = (field) => Number(row[index[field]]);
+  return {
+    period: row[index.INFO_TIME].replaceAll('"', ""),
+    total: number("FLD01"),
+    avgAge: number("FLD02"),
+    buckets: [
+      ["1年以下", number("FLD03")],
+      ["1-5年", number("FLD04")],
+      ["5-10年", number("FLD05")],
+      ["10-15年", number("FLD06")],
+      ["15-20年", number("FLD07")],
+      ["20-25年", number("FLD08")],
+      ["25-30年", number("FLD09")],
+      ["30-40年", number("FLD10")],
+      ["40-50年", number("FLD11")],
+      ["50年以上", number("FLD12")],
+    ],
+  };
+}
+
 function districtMetric(item, metric) {
   if (metric === "under10Share") return item.under10 / item.total;
   if (metric === "avgAge") return item.avgAge;
@@ -98,16 +159,19 @@ function renderCounty(data = countySnapshot) {
 
 async function refreshCounty() {
   const status = document.querySelector("#countyStatus");
-  status.textContent = "正在讀取本站已同步的 SEGIS 資料...";
+  status.textContent = "正在讀取 repo 內最新 CSV...";
   try {
     const response = await fetch(`${countyDataPath}?v=${Date.now()}`, { cache: "no-store" });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const data = await response.json();
+    const data = countyFromCsv(await response.text());
     renderCounty(data);
-    status.textContent = `已讀取：${data.period}。GitHub Actions 會定期從 SEGIS 更新此 JSON，避免瀏覽器 CORS 限制。`;
+    const manifestResponse = await fetch(`${countyManifestPath}?v=${Date.now()}`, { cache: "no-store" });
+    const manifest = manifestResponse.ok ? await manifestResponse.json() : null;
+    const fetched = manifest?.fetchedAt ? `，抓取時間 ${new Date(manifest.fetchedAt).toLocaleString("zh-TW")}` : "";
+    status.textContent = `已讀取 CSV：${data.period}${fetched}。GitHub Actions 會定期下載 SEGIS ZIP、抽出 CSV 並部署到本站。`;
   } catch (error) {
     renderCounty();
-    status.textContent = `本站資料讀取失敗，顯示內建快照。原因：${error.message}`;
+    status.textContent = `CSV 讀取失敗，顯示內建快照。原因：${error.message}`;
   }
 }
 

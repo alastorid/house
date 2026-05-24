@@ -65,7 +65,7 @@
           <button class="button dark" id="refreshCounty" type="button">重新讀取本站資料</button>
         </div>
         <p class="note" id="countyStatus">
-          GitHub Actions 會定期抓取 SEGIS 公開資料並更新本站 JSON；瀏覽器只讀同網域檔案，因此不會遇到 CORS。
+          GitHub Actions 會定期抓取 SEGIS 頁面提供的 ZIP，抽出 CSV 放進 repo；瀏覽器只讀同網域 CSV，因此不會遇到 CORS。
         </p>
         <div class="age-bars" id="countyBars"></div>
       </section>
@@ -149,7 +149,7 @@
           <article>
             <h3>內政部社會經濟資料服務平台</h3>
             <p>
-              行政區房屋稅籍住宅類數量依屋齡區分統計；縣級欄位含總宅數、平均屋齡與各屋齡級距宅數。
+              行政區房屋稅籍住宅類數量依屋齡區分統計；CSV 欄位含總宅數、平均屋齡、1 年以下、1-5 年與各屋齡級距宅數。
             </p>
             <a href="https://segis.moi.gov.tw/STATCloud/QueryInterfaceView?COL=CC2HBmJVqP%252fIpaJ3ipfNUw%253d%253d&MCOL=LumnmerulLcB%252bBLmWOEuNw%253d%253d" target="_blank" rel="noreferrer">查看資料集</a>
           </article>
