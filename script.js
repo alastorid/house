@@ -1,5 +1,23 @@
-const countyDataPath = "data/latest/house-age-county.csv";
 const countyManifestPath = "data/latest/manifest.json";
+
+// Fallback data in case fetch fails
+const countySnapshot = {
+  period: "114Y2S",
+  total: 425964,
+  avgAge: 37.8,
+  buckets: [
+    ["1年以下", 5958],
+    ["1-5年", 17231],
+    ["5-10年", 18008],
+    ["10-15年", 14107],
+    ["15-20年", 17024],
+    ["20-25年", 16248],
+    ["25-30年", 48279],
+    ["30-40年", 92910],
+    ["40-50年", 106128],
+    ["50年以上", 90071],
+  ],
+};
 
 const districtData = [
   { name: "彰化市", total: 80726, under10: 4505, age10to20: 7072, age20to30: 21045, age30to40: 16000, age40to50: 23193, over50: 8911, avgAge: 34, avgArea: 49.41, x: 322, y: 210, w: 146, h: 108 },
@@ -42,13 +60,15 @@ function homes(value) {
 }
 
 function parseCsv(text) {
+  // Remove BOM if present
+  const cleanText = text.replace(/^\uFEFF/, "");
   const rows = [];
   let row = [];
   let cell = "";
   let quoted = false;
-  for (let index = 0; index < text.length; index += 1) {
-    const char = text[index];
-    const next = text[index + 1];
+  for (let index = 0; index < cleanText.length; index += 1) {
+    const char = cleanText[index];
+    const next = cleanText[index + 1];
     if (char === '"' && quoted && next === '"') {
       cell += '"';
       index += 1;
@@ -59,7 +79,7 @@ function parseCsv(text) {
       cell = "";
     } else if ((char === "\n" || char === "\r") && !quoted) {
       if (char === "\r" && next === "\n") index += 1;
-      row.push(cell.trim().replace(/^\uFEFF/, ""));
+      row.push(cell.trim());
       if (row.some(Boolean)) rows.push(row);
       row = [];
       cell = "";
@@ -68,7 +88,7 @@ function parseCsv(text) {
     }
   }
   if (cell || row.length) {
-    row.push(cell.trim().replace(/^\uFEFF/, ""));
+    row.push(cell.trim());
     rows.push(row);
   }
   return rows;
@@ -76,14 +96,23 @@ function parseCsv(text) {
 
 function countyFromCsv(text) {
   const rows = parseCsv(text);
+  if (rows.length < 3) throw new Error("CSV 資料列數不足");
   const header = rows[0];
   const records = rows.slice(2);
   const index = Object.fromEntries(header.map((name, position) => [name, position]));
-  const row = records.find((record) => record[index.COUNTY] === "彰化縣");
-  if (!row) throw new Error("CSV 裡找不到彰化縣");
-  const number = (field) => Number(row[index[field]]);
+  
+  if (index.COUNTY === undefined) throw new Error("找不到 COUNTY 欄位");
+  
+  const row = records.find((record) => record[index.COUNTY] && record[index.COUNTY].includes("彰化"));
+  if (!row) throw new Error("CSV 裡找不到彰化縣數據");
+  
+  const number = (field) => {
+    const val = row[index[field]];
+    return val ? Number(val.replace(/,/g, "")) : 0;
+  };
+
   return {
-    period: row[index.INFO_TIME].replaceAll('"', ""),
+    period: (row[index.INFO_TIME] || "未知").replaceAll('"', ""),
     total: number("FLD01"),
     avgAge: number("FLD02"),
     buckets: [
@@ -149,30 +178,30 @@ function renderCounty(data) {
 
 async function refreshCounty() {
   const status = document.querySelector("#countyStatus");
-  status.textContent = "正在讀取 repo 內最新資料清單...";
+  status.textContent = "正在確認資料版本...";
   try {
-    // 1. Fetch manifest to find the current original filename
     const manifestResponse = await fetch(`${countyManifestPath}?v=${Date.now()}`, { cache: "no-store" });
     if (!manifestResponse.ok) throw new Error("無法讀取 manifest.json");
     const manifest = await manifestResponse.json();
     
     const countyFileName = manifest.dataFiles?.county;
-    if (!countyFileName) throw new Error("Manifest 中找不到縣市資料檔案名稱");
+    if (!countyFileName) throw new Error("資料清單中找不到縣市檔案");
 
-    status.textContent = `正在讀取原始 CSV：${countyFileName}...`;
+    status.textContent = `載入原始數據：${countyFileName}...`;
     
-    // 2. Fetch the actual original CSV
-    const csvPath = `data/latest/${countyFileName}`;
+    const csvPath = `data/latest/${encodeURIComponent(countyFileName)}`;
     const response = await fetch(`${csvPath}?v=${Date.now()}`, { cache: "no-store" });
-    if (!response.ok) throw new Error(`HTTP ${response.status} (讀取 CSV 失敗)`);
+    if (!response.ok) throw new Error(`無法讀取 CSV (HTTP ${response.status})`);
     
     const data = countyFromCsv(await response.text());
     renderCounty(data);
     
-    const fetched = manifest.fetchedAt ? `，抓取時間 ${new Date(manifest.fetchedAt).toLocaleString("zh-TW")}` : "";
-    status.textContent = `已讀取原始 CSV：${data.period}${fetched}。檔案名稱：${countyFileName}`;
+    const fetched = manifest.fetchedAt ? ` (更新時間：${new Date(manifest.fetchedAt).toLocaleString("zh-TW")})` : "";
+    status.textContent = `已載入最新官方數據：${data.period}${fetched}。`;
   } catch (error) {
-    status.textContent = `讀取失敗。原因：${error.message}`;
+    console.error("Data refresh failed:", error);
+    renderCounty(countySnapshot);
+    status.textContent = `無法取得最新數據，已顯示預載快照。原因：${error.message}`;
   }
 }
 
@@ -284,8 +313,8 @@ document.querySelector("#districtSearch").addEventListener("input", () => {
 document.querySelector("#metricSelect").addEventListener("change", renderMap);
 
 // Initial Load
-renderCounty(); // Show loading state
-refreshCounty(); // Fetch and update
+renderCounty(countySnapshot); // Show initial snapshot
+refreshCounty(); // Try to fetch latest from CSV
 renderDetails();
 renderMap();
 renderTable();
