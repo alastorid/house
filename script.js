@@ -149,18 +149,30 @@ function renderCounty(data) {
 
 async function refreshCounty() {
   const status = document.querySelector("#countyStatus");
-  status.textContent = "正在讀取 repo 內最新 CSV...";
+  status.textContent = "正在讀取 repo 內最新資料清單...";
   try {
-    const response = await fetch(`${countyDataPath}?v=${Date.now()}`, { cache: "no-store" });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    // 1. Fetch manifest to find the current original filename
+    const manifestResponse = await fetch(`${countyManifestPath}?v=${Date.now()}`, { cache: "no-store" });
+    if (!manifestResponse.ok) throw new Error("無法讀取 manifest.json");
+    const manifest = await manifestResponse.json();
+    
+    const countyFileName = manifest.dataFiles?.county;
+    if (!countyFileName) throw new Error("Manifest 中找不到縣市資料檔案名稱");
+
+    status.textContent = `正在讀取原始 CSV：${countyFileName}...`;
+    
+    // 2. Fetch the actual original CSV
+    const csvPath = `data/latest/${countyFileName}`;
+    const response = await fetch(`${csvPath}?v=${Date.now()}`, { cache: "no-store" });
+    if (!response.ok) throw new Error(`HTTP ${response.status} (讀取 CSV 失敗)`);
+    
     const data = countyFromCsv(await response.text());
     renderCounty(data);
-    const manifestResponse = await fetch(`${countyManifestPath}?v=${Date.now()}`, { cache: "no-store" });
-    const manifest = manifestResponse.ok ? await manifestResponse.json() : null;
-    const fetched = manifest?.fetchedAt ? `，抓取時間 ${new Date(manifest.fetchedAt).toLocaleString("zh-TW")}` : "";
-    status.textContent = `已讀取 CSV：${data.period}${fetched}。GitHub Actions 會定期下載 SEGIS ZIP、抽出 CSV 並部署到本站。`;
+    
+    const fetched = manifest.fetchedAt ? `，抓取時間 ${new Date(manifest.fetchedAt).toLocaleString("zh-TW")}` : "";
+    status.textContent = `已讀取原始 CSV：${data.period}${fetched}。檔案名稱：${countyFileName}`;
   } catch (error) {
-    status.textContent = `CSV 讀取失敗。原因：${error.message}`;
+    status.textContent = `讀取失敗。原因：${error.message}`;
   }
 }
 

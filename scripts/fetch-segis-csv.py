@@ -65,30 +65,31 @@ def main() -> None:
         target_dir = ROOT / "data" / period_name
         target_dir.mkdir(parents=True, exist_ok=True)
         
-        manifest_files = []
+        manifest_files = {}
         
-        for name in csv_names:
-            csv_bytes = archive.read(name)
-            filename = Path(name).name
-            # Simplified filename for the repo
-            if "縣市" in filename:
-                repo_name = "house-age-county.csv"
-            elif "鄉鎮市區" in filename:
-                repo_name = "house-age-township.csv"
-            else:
-                repo_name = filename
+        for name in archive.namelist():
+            if not name.lower().endswith(".csv"):
+                continue
+                
+            content = archive.read(name)
+            original_filename = Path(name).name
             
-            target_csv = target_dir / repo_name
-            target_csv.write_text(csv_bytes.decode("utf-8-sig"), encoding="utf-8")
+            # Save original in period dir
+            target_path = target_dir / original_filename
+            target_path.write_bytes(content)
             
-            # Update latest copy
+            # Copy to latest dir
             LATEST_DIR.mkdir(parents=True, exist_ok=True)
-            latest_csv = LATEST_DIR / repo_name
-            shutil.copyfile(target_csv, latest_csv)
+            latest_path = LATEST_DIR / original_filename
+            latest_path.write_bytes(content)
             
-            manifest_files.append(str(target_csv.relative_to(ROOT)))
-            manifest_files.append(str(latest_csv.relative_to(ROOT)))
-            print(f"Extracted {filename} -> {target_csv.relative_to(ROOT)}")
+            # Identify file type for manifest
+            if "縣市" in original_filename:
+                manifest_files["county"] = original_filename
+            elif "鄉鎮市區" in original_filename:
+                manifest_files["township"] = original_filename
+            
+            print(f"Extracted {original_filename} -> {target_path.relative_to(ROOT)}")
 
         manifest = {
             "sourcePage": "https://segis.moi.gov.tw/STATCloud/QueryInterfaceView?COL=CC2HBmJVqP%252fIpaJ3ipfNUw%253d%253d&MCOL=LumnmerulLcB%252bBLmWOEuNw%253d%253d",
@@ -97,7 +98,7 @@ def main() -> None:
             "period": f"{year}Y{season}",
             "year": year,
             "season": season,
-            "files": manifest_files,
+            "dataFiles": manifest_files,
         }
         manifest_text = json.dumps(manifest, ensure_ascii=False, indent=2) + "\n"
         (target_dir / "manifest.json").write_text(manifest_text, encoding="utf-8")
