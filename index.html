@@ -18,6 +18,7 @@
           <a href="#county">縣級屋齡</a>
           <a href="#districts">鄉鎮市戶數</a>
           <a href="#sankey">流量分析</a>
+          <a href="#social">社經疊合</a>
           <a href="#disclaimer">聲明</a>
           <a href="#sources">來源</a>
         </div>
@@ -97,6 +98,10 @@
               <option value="avgAge">平均屋齡</option>
               <option value="avgArea">平均坪數</option>
               <option value="total">總宅數</option>
+              <option value="avgIncomeK">平均所得</option>
+              <option value="population">人口數</option>
+              <option value="seniorShare">65 歲以上比例</option>
+              <option value="youthShare">0-14 歲比例</option>
             </select>
           </label>
         </div>
@@ -189,6 +194,30 @@
             <button class="button plain" id="townSelectNone" type="button">清除</button>
             <button class="button plain" id="townInvert" type="button">反選</button>
           </div>
+          <div class="range-filter">
+            <label class="select-field">
+              <span>自動篩選指標</span>
+              <select id="townRangeMetric">
+                <option value="total">房屋數量</option>
+                <option value="old30">30 年以上老屋數量</option>
+                <option value="over50">50 年以上老屋數量</option>
+                <option value="under10">10 年以下住宅數量</option>
+                <option value="avgAge">平均屋齡</option>
+                <option value="avgArea">平均坪數</option>
+                <option value="avgIncomeK">平均所得</option>
+                <option value="population">人口數</option>
+                <option value="seniorShare">65 歲以上比例</option>
+                <option value="youthShare">0-14 歲比例</option>
+              </select>
+            </label>
+            <div class="range-field">
+              <span id="townRangeLabel">全部範圍</span>
+              <div class="dual-range">
+                <input id="townRangeMin" type="range" min="0" max="100" value="0" />
+                <input id="townRangeMax" type="range" min="0" max="100" value="100" />
+              </div>
+            </div>
+          </div>
           <div class="town-chip-grid" id="townChips"></div>
         </div>
 
@@ -213,6 +242,47 @@
             <tbody id="sankeyRows"></tbody>
           </table>
         </div>
+      </section>
+
+      <section class="section" id="social">
+        <div class="section-title">
+          <div>
+            <p class="eyebrow">Composite View</p>
+            <h2>房屋、所得與人口年齡疊合分析</h2>
+          </div>
+          <p class="section-kicker">
+            將住宅存量、老屋比例、報稅平均所得與人口年齡結構標準化後放在同一列比較。
+          </p>
+        </div>
+
+        <div class="toolbar" aria-label="社經疊合控制列">
+          <label class="select-field">
+            <span>排序</span>
+            <select id="overlaySort">
+              <option value="seniorShare">65 歲以上比例</option>
+              <option value="old30Share">30 年以上老屋比例</option>
+              <option value="avgIncomeK">平均所得</option>
+              <option value="population">人口數</option>
+              <option value="total">房屋數量</option>
+            </select>
+          </label>
+          <label class="select-field">
+            <span>顯示</span>
+            <select id="overlayLimit">
+              <option value="26">全部鄉鎮</option>
+              <option value="12">前 12 個</option>
+              <option value="8">前 8 個</option>
+            </select>
+          </label>
+        </div>
+        <p class="note" id="socialStatus">正在載入所得與人口資料...</p>
+        <div class="overlay-legend">
+          <span><i class="legend-homes"></i>房屋數量</span>
+          <span><i class="legend-old"></i>30 年以上老屋比例</span>
+          <span><i class="legend-income"></i>平均所得</span>
+          <span><i class="legend-senior"></i>65 歲以上比例</span>
+        </div>
+        <div class="overlay-list" id="overlayList"></div>
       </section>
 
       <section class="section disclaimer" id="disclaimer">
@@ -247,6 +317,12 @@
               本頁以公開資料整理與視覺化為目的。雖已核對欄位、總數與來源連結，仍可能因官方資料修正、統計期差異或換算四捨五入產生差異；正式引用請以原始官方資料為準。
             </p>
           </article>
+          <article>
+            <h3>所得資料</h3>
+            <p>
+              平均所得使用財政部綜合所得稅申報統計，代表納稅單位申報所得，不含政府移轉支出、免稅所得與分離課稅所得，不能等同家戶可支配所得。
+            </p>
+          </article>
         </div>
       </section>
 
@@ -269,6 +345,14 @@
               彰化縣政府主計處編印，表 2-4 提供各鄉鎮市總數、屋齡占比與平均屋齡；表 2-5 提供坪數分布與平均面積。
             </p>
             <a href="https://ctrl.chcg.gov.tw/files/16_20221220095343596_%E5%BD%B0%E5%8C%96%E7%B8%A3%E4%BD%8F%E5%AE%85%E5%88%86%E6%9E%90_2025.pdf" target="_blank" rel="noreferrer">查看 PDF</a>
+          </article>
+          <article>
+            <h3>人口年齡結構與綜合所得稅</h3>
+            <p>
+              人口年齡結構採彰化縣政府主計處年度 CSV；平均所得採財政部財政資訊中心綜合所得稅鄉鎮村里統計分析表。
+            </p>
+            <a href="https://data.gov.tw/dataset/27615" target="_blank" rel="noreferrer">人口資料</a>
+            <a href="https://data.gov.tw/dataset/103066" target="_blank" rel="noreferrer">所得資料</a>
           </article>
         </div>
       </section>

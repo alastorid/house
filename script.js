@@ -1,5 +1,6 @@
 const countyManifestPath = "data/latest/manifest.json";
 const townshipShapePath = "data/changhua-township-shapes.json";
+const socialDataPath = "data/latest/changhua-social.json";
 
 // Fallback data in case fetch fails
 const countySnapshot = {
@@ -54,6 +55,8 @@ let selectedDistrict = "彰化市";
 let sankeyZoom = 1;
 let townshipShapes = null;
 let selectedSankeyTowns = new Set();
+let socialByTown = new Map();
+let rangeFilter = { metric: "total", min: 0, max: 1 };
 
 const ageFields = [
   ["under10", "10年以下"],
@@ -76,6 +79,14 @@ function pct(value, total) {
 
 function homes(value) {
   return `${formatter.format(value)} 宅`;
+}
+
+function percentText(value) {
+  return `${(value * 100).toFixed(1)}%`;
+}
+
+function moneyK(value) {
+  return value ? `${formatter.format(Math.round(value))} 千元` : "--";
 }
 
 function areaGroup(avgArea) {
@@ -158,6 +169,10 @@ function countyFromCsv(text) {
 
 function districtMetric(item, metric) {
   if (metric === "under10Share") return item.under10 / item.total;
+  if (metric === "avgIncomeK") return socialByTown.get(item.name)?.avgIncomeK || 0;
+  if (metric === "population") return socialByTown.get(item.name)?.population || 0;
+  if (metric === "seniorShare") return socialByTown.get(item.name)?.seniorShare || 0;
+  if (metric === "youthShare") return socialByTown.get(item.name)?.youthShare || 0;
   if (metric === "avgAge") return item.avgAge;
   if (metric === "avgArea") return item.avgArea;
   if (metric === "total") return item.total;
@@ -180,6 +195,25 @@ async function loadTownshipShapes() {
   } catch (error) {
     console.warn("Township shape map unavailable; using fallback blocks.", error);
   }
+}
+
+async function loadSocialData() {
+  try {
+    const response = await fetch(`${socialDataPath}?v=${Date.now()}`, { cache: "no-store" });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const payload = await response.json();
+    socialByTown = new Map(payload.towns.map((town) => [town.name, town]));
+    const fetched = payload.fetchedAt ? `更新時間：${new Date(payload.fetchedAt).toLocaleString("zh-TW")}` : "已載入";
+    document.querySelector("#socialStatus").textContent = `已載入人口年齡與 111 年度綜合所得稅資料；${fetched}。`;
+  } catch (error) {
+    console.warn("Social data unavailable.", error);
+    document.querySelector("#socialStatus").textContent = `無法載入所得與人口資料：${error.message}`;
+  }
+  renderMap();
+  renderRangeControls();
+  renderSankeyFilterOptions();
+  renderSankey();
+  renderOverlay();
 }
 
 function renderCounty(data) {
@@ -263,14 +297,14 @@ function renderMap() {
       .map((item) => {
         const value = districtMetric(item, metric);
         const shape = shapeByName.get(item.name);
-        const label =
-          metric === "avgAge"
-            ? `${item.avgAge}年`
-            : metric === "avgArea"
-              ? `${item.avgArea.toFixed(1)}坪`
-              : metric === "total"
-                ? formatter.format(item.total)
-                : pct(metric === "under10Share" ? item.under10 : item.over50, item.total);
+        let label = pct(metric === "under10Share" ? item.under10 : item.over50, item.total);
+        if (metric === "avgAge") label = `${item.avgAge}年`;
+        if (metric === "avgArea") label = `${item.avgArea.toFixed(1)}坪`;
+        if (metric === "avgIncomeK") label = moneyK(socialByTown.get(item.name)?.avgIncomeK);
+        if (metric === "population") label = formatter.format(socialByTown.get(item.name)?.population || 0);
+        if (metric === "seniorShare") label = percentText(socialByTown.get(item.name)?.seniorShare || 0);
+        if (metric === "youthShare") label = percentText(socialByTown.get(item.name)?.youthShare || 0);
+        if (metric === "total") label = formatter.format(item.total);
         if (shape) {
           return `
             <g data-district="${item.name}">
@@ -311,6 +345,7 @@ function renderMap() {
 
 function renderDetails() {
   const item = districtData.find((district) => district.name === selectedDistrict) || districtData[0];
+  const social = socialByTown.get(item.name);
   const old30 = item.age30to40 + item.age40to50 + item.over50;
   document.querySelector("#selectedName").textContent = item.name;
   document.querySelector("#selectedTotal").textContent = homes(item.total);
@@ -319,6 +354,9 @@ function renderDetails() {
   document.querySelector("#selectedYoung").textContent = `${homes(item.under10)} (${pct(item.under10, item.total)})`;
   document.querySelector("#selectedOld30").textContent = `${homes(old30)} (${pct(old30, item.total)})`;
   document.querySelector("#selectedOld50").textContent = `${homes(item.over50)} (${pct(item.over50, item.total)})`;
+  if (social) {
+    document.querySelector("#selectedArea").textContent = `${item.avgArea.toFixed(2)} 坪 · 所得 ${moneyK(social.avgIncomeK)}`;
+  }
 }
 
 function renderTable() {
@@ -638,6 +676,133 @@ function renderSankey() {
     .join("");
 }
 
+function townRangeMetricValue(town, metric = rangeFilter.metric) {
+  const social = socialByTown.get(town.name);
+  if (metric === "old30") return town.age30to40 + town.age40to50 + town.over50;
+  if (metric === "avgIncomeK") return social?.avgIncomeK || 0;
+  if (metric === "population") return social?.population || 0;
+  if (metric === "seniorShare") return social?.seniorShare || 0;
+  if (metric === "youthShare") return social?.youthShare || 0;
+  return districtMetric(town, metric);
+}
+
+function rangeMetricFormat(metric, value) {
+  if (["seniorShare", "youthShare"].includes(metric)) return percentText(value);
+  if (metric === "avgIncomeK") return moneyK(value);
+  if (metric === "avgAge") return `${value.toFixed(1)} 年`;
+  if (metric === "avgArea") return `${value.toFixed(1)} 坪`;
+  return formatter.format(Math.round(value));
+}
+
+function currentRangeBounds() {
+  const values = districtData.map((town) => townRangeMetricValue(town)).filter((value) => Number.isFinite(value));
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  return { min, max };
+}
+
+function sliderToValue(position, min, max) {
+  return min + (Number(position) / 100) * (max - min);
+}
+
+function applyTownRangeFilter() {
+  const metric = document.querySelector("#townRangeMetric").value;
+  const minSlider = document.querySelector("#townRangeMin");
+  const maxSlider = document.querySelector("#townRangeMax");
+  let low = Math.min(Number(minSlider.value), Number(maxSlider.value));
+  let high = Math.max(Number(minSlider.value), Number(maxSlider.value));
+  minSlider.value = low;
+  maxSlider.value = high;
+  rangeFilter.metric = metric;
+  const bounds = currentRangeBounds();
+  rangeFilter.min = sliderToValue(low, bounds.min, bounds.max);
+  rangeFilter.max = sliderToValue(high, bounds.min, bounds.max);
+  selectedSankeyTowns = new Set(
+    districtData
+      .filter((town) => {
+        const value = townRangeMetricValue(town);
+        return value >= rangeFilter.min && value <= rangeFilter.max;
+      })
+      .map((town) => town.name),
+  );
+  renderTownChips();
+  renderRangeLabel();
+  renderSankeyFilterOptions();
+  renderSankey();
+}
+
+function renderRangeLabel() {
+  const metric = document.querySelector("#townRangeMetric").value;
+  const label = document.querySelector("#townRangeMetric").selectedOptions[0]?.textContent || "指標";
+  document.querySelector("#townRangeLabel").textContent =
+    `${label}: ${rangeMetricFormat(metric, rangeFilter.min)} - ${rangeMetricFormat(metric, rangeFilter.max)}`;
+}
+
+function renderRangeControls() {
+  const bounds = currentRangeBounds();
+  rangeFilter.min = bounds.min;
+  rangeFilter.max = bounds.max;
+  document.querySelector("#townRangeMin").value = "0";
+  document.querySelector("#townRangeMax").value = "100";
+  renderRangeLabel();
+}
+
+function overlayValue(town, metric) {
+  const social = socialByTown.get(town.name);
+  const old30 = town.age30to40 + town.age40to50 + town.over50;
+  if (metric === "old30Share") return old30 / town.total;
+  if (metric === "avgIncomeK") return social?.avgIncomeK || 0;
+  if (metric === "population") return social?.population || 0;
+  if (metric === "seniorShare") return social?.seniorShare || 0;
+  return town[metric] || 0;
+}
+
+function normalizedWidth(rows, metric, value) {
+  const values = rows.map((town) => overlayValue(town, metric));
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  if (max === min) return 50;
+  return Math.max(3, ((value - min) / (max - min)) * 100);
+}
+
+function renderOverlay() {
+  const sort = document.querySelector("#overlaySort").value;
+  const limit = Number(document.querySelector("#overlayLimit").value);
+  const rows = [...districtData]
+    .sort((a, b) => overlayValue(b, sort) - overlayValue(a, sort))
+    .slice(0, limit);
+  document.querySelector("#overlayList").innerHTML = rows
+    .map((town) => {
+      const social = socialByTown.get(town.name);
+      const old30Share = (town.age30to40 + town.age40to50 + town.over50) / town.total;
+      const metrics = [
+        ["homes", town.total, homes(town.total)],
+        ["old", old30Share, percentText(old30Share)],
+        ["income", social?.avgIncomeK || 0, moneyK(social?.avgIncomeK)],
+        ["senior", social?.seniorShare || 0, percentText(social?.seniorShare || 0)],
+      ];
+      return `
+        <article class="overlay-row">
+          <div class="overlay-name">
+            <strong>${town.name}</strong>
+            <span>人口 ${formatter.format(social?.population || 0)} · 0-14歲 ${percentText(social?.youthShare || 0)}</span>
+          </div>
+          <div class="overlay-bars">
+            ${metrics
+              .map(([key, value, text]) => `
+                <div class="overlay-bar ${key}">
+                  <span style="width:${normalizedWidth(rows, key === "homes" ? "total" : key === "old" ? "old30Share" : key === "income" ? "avgIncomeK" : "seniorShare", value)}%"></span>
+                  <b>${text}</b>
+                </div>
+              `)
+              .join("")}
+          </div>
+        </article>
+      `;
+    })
+    .join("");
+}
+
 function selectDistrict(name) {
   selectedDistrict = name;
   renderDetails();
@@ -704,15 +869,26 @@ document.querySelector("#townInvert").addEventListener("click", () => {
   renderSankeyFilterOptions();
   renderSankey();
 });
+document.querySelector("#townRangeMetric").addEventListener("change", () => {
+  renderRangeControls();
+  applyTownRangeFilter();
+});
+document.querySelector("#townRangeMin").addEventListener("input", applyTownRangeFilter);
+document.querySelector("#townRangeMax").addEventListener("input", applyTownRangeFilter);
+document.querySelector("#overlaySort").addEventListener("change", renderOverlay);
+document.querySelector("#overlayLimit").addEventListener("change", renderOverlay);
 
 // Initial Load
 renderCounty(countySnapshot); // Show initial snapshot
 refreshCounty(); // Try to fetch latest from CSV
 loadTownshipShapes();
+loadSocialData();
 renderDetails();
 renderMap();
 renderTable();
 selectedSankeyTowns = new Set(districtData.map((town) => town.name));
 renderTownChips();
+renderRangeControls();
 renderSankeyStageOptions();
 renderSankey();
+renderOverlay();

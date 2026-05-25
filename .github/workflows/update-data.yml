@@ -27,6 +27,9 @@ jobs:
       - name: Fetch and extract SEGIS CSV
         run: python3 scripts/fetch-segis-csv.py
 
+      - name: Fetch social and demographic data
+        run: python3 scripts/fetch-social-data.py
+
       - name: Install R system dependencies
         run: |
           sudo apt-get update
