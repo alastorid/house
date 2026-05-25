@@ -17,6 +17,7 @@
         <div class="nav-links">
           <a href="#county">縣級屋齡</a>
           <a href="#districts">鄉鎮市戶數</a>
+          <a href="#sankey">流量分析</a>
           <a href="#sources">來源</a>
         </div>
       </nav>
@@ -137,6 +138,68 @@
               </tr>
             </thead>
             <tbody id="districtRows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="section" id="sankey">
+        <div class="section-title">
+          <div>
+            <p class="eyebrow">Interactive Sankey</p>
+            <h2>鄉鎮市互動式流量分析</h2>
+          </div>
+          <p class="section-kicker">
+            全部 26 個彰化鄉鎮市都保留在圖中。線寬代表戶數，標籤與下方明細顯示占比，篩選可鎖定任一階段。
+          </p>
+        </div>
+
+        <div class="sankey-tools" aria-label="Sankey 控制列">
+          <label class="select-field">
+            <span>流量模式</span>
+            <select id="sankeyMode">
+              <option value="townAgeArea">鄉鎮市 → 屋齡 → 平均坪數級距</option>
+              <option value="townAge">鄉鎮市 → 屋齡</option>
+              <option value="townArea">鄉鎮市 → 平均坪數級距</option>
+            </select>
+          </label>
+          <label class="select-field">
+            <span>篩選階段</span>
+            <select id="sankeyStage"></select>
+          </label>
+          <label class="select-field">
+            <span>篩選項目</span>
+            <select id="sankeyFilter"></select>
+          </label>
+          <div class="zoom-control" aria-label="Sankey 縮放">
+            <span>縮放</span>
+            <div>
+              <button class="icon-button" id="sankeyZoomOut" type="button" aria-label="縮小">−</button>
+              <input id="sankeyZoom" type="range" min="0.55" max="1.8" step="0.05" value="1" />
+              <button class="icon-button" id="sankeyZoomIn" type="button" aria-label="放大">+</button>
+              <button class="button dark" id="sankeyReset" type="button">重設</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="sankey-summary" id="sankeySummary"></div>
+        <div class="sankey-canvas">
+          <svg id="sankeySvg" role="img" aria-labelledby="sankeyTitle sankeyDesc" viewBox="0 0 1200 720">
+            <title id="sankeyTitle">彰化鄉鎮市住宅流量 Sankey</title>
+            <desc id="sankeyDesc">展示彰化各鄉鎮市住宅戶數流向屋齡與平均坪數級距。</desc>
+          </svg>
+        </div>
+        <div class="table-wrap sankey-detail-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>來源</th>
+                <th>目標</th>
+                <th>戶數</th>
+                <th>占篩選總量</th>
+                <th>來源內占比</th>
+              </tr>
+            </thead>
+            <tbody id="sankeyRows"></tbody>
           </table>
         </div>
       </section>

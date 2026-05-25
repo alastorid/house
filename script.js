@@ -1,4 +1,5 @@
 const countyManifestPath = "data/latest/manifest.json";
+const townshipShapePath = "data/changhua-township-shapes.json";
 
 // Fallback data in case fetch fails
 const countySnapshot = {
@@ -50,6 +51,23 @@ const districtData = [
 
 const formatter = new Intl.NumberFormat("zh-TW");
 let selectedDistrict = "彰化市";
+let sankeyZoom = 1;
+let townshipShapes = null;
+
+const ageFields = [
+  ["under10", "10年以下"],
+  ["age10to20", "10-20年"],
+  ["age20to30", "20-30年"],
+  ["age30to40", "30-40年"],
+  ["age40to50", "40-50年"],
+  ["over50", "50年以上"],
+];
+
+const stageLabels = {
+  town: "鄉鎮市",
+  age: "屋齡",
+  area: "平均坪數級距",
+};
 
 function pct(value, total) {
   return total ? `${((value / total) * 100).toFixed(1)}%` : "--";
@@ -57,6 +75,13 @@ function pct(value, total) {
 
 function homes(value) {
   return `${formatter.format(value)} 宅`;
+}
+
+function areaGroup(avgArea) {
+  if (avgArea < 48) return "平均45-48坪";
+  if (avgArea < 52) return "平均48-52坪";
+  if (avgArea < 55) return "平均52-55坪";
+  return "平均55坪以上";
 }
 
 function parseCsv(text) {
@@ -145,6 +170,17 @@ function colorFor(value, min, max, metric) {
   return `hsl(${42 - t * 20} 76% ${78 - t * 34}%)`;
 }
 
+async function loadTownshipShapes() {
+  try {
+    const response = await fetch(`${townshipShapePath}?v=${Date.now()}`, { cache: "no-store" });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    townshipShapes = await response.json();
+    renderMap();
+  } catch (error) {
+    console.warn("Township shape map unavailable; using fallback blocks.", error);
+  }
+}
+
 function renderCounty(data) {
   if (!data) {
     document.querySelector("#periodLabel").textContent = "讀取中...";
@@ -216,14 +252,16 @@ function renderMap() {
   const values = districtData.map((item) => districtMetric(item, metric));
   const min = Math.min(...values);
   const max = Math.max(...values);
+  const shapeByName = new Map((townshipShapes?.towns || []).map((shape) => [shape.name, shape]));
   document.querySelector("#changhuaMap").innerHTML = `
-    <title id="mapTitle">彰化縣鄉鎮市屋齡地圖</title>
-    <desc id="mapDesc">點選鄉鎮市查看屋齡戶數。</desc>
-    <rect x="28" y="70" width="608" height="540" rx="18" fill="#e9eef2" />
-    <text x="50" y="44" fill="#5d6b78" font-size="18" font-weight="800">彰化縣屋齡地圖</text>
+    <title id="mapTitle">彰化縣鄉鎮市實際邊界屋齡地圖</title>
+    <desc id="mapDesc">點選實際鄉鎮市邊界查看屋齡戶數。</desc>
+    <rect x="24" y="24" width="712" height="592" rx="18" fill="#e9eef2" />
+    <text x="42" y="54" fill="#5d6b78" font-size="18" font-weight="800">彰化縣屋齡地圖</text>
     ${data
       .map((item) => {
         const value = districtMetric(item, metric);
+        const shape = shapeByName.get(item.name);
         const label =
           metric === "avgAge"
             ? `${item.avgAge}年`
@@ -232,6 +270,18 @@ function renderMap() {
               : metric === "total"
                 ? formatter.format(item.total)
                 : pct(metric === "under10Share" ? item.under10 : item.over50, item.total);
+        if (shape) {
+          return `
+            <g data-district="${item.name}">
+              <path class="district ${item.name === selectedDistrict ? "active" : ""}"
+                d="${shape.path}" fill="${colorFor(value, min, max, metric)}" tabindex="0" role="button"
+                aria-label="${item.name}"
+              />
+              <text class="district-label map-shape-label" x="${shape.labelX}" y="${shape.labelY - 4}">${item.name}</text>
+              <text class="district-count map-shape-count" x="${shape.labelX}" y="${shape.labelY + 16}">${label}</text>
+            </g>
+          `;
+        }
         return `
           <g data-district="${item.name}">
             <rect class="district ${item.name === selectedDistrict ? "active" : ""}"
@@ -295,6 +345,254 @@ function renderTable() {
   });
 }
 
+function sankeyStages(mode) {
+  if (mode === "townAge") return ["town", "age"];
+  if (mode === "townArea") return ["town", "area"];
+  return ["town", "age", "area"];
+}
+
+function sankeyRecords() {
+  return districtData.flatMap((district) => {
+    const area = areaGroup(district.avgArea);
+    return ageFields.map(([field, age]) => ({
+      town: district.name,
+      age,
+      area,
+      value: district[field],
+      districtTotal: district.total,
+      avgArea: district.avgArea,
+    }));
+  });
+}
+
+function filteredSankeyRecords() {
+  const mode = document.querySelector("#sankeyMode").value;
+  const stage = document.querySelector("#sankeyStage").value;
+  const filter = document.querySelector("#sankeyFilter").value;
+  const stages = sankeyStages(mode);
+  return sankeyRecords().filter((record) => {
+    if (stage === "all" || filter === "all") return true;
+    if (!stages.includes(stage)) return true;
+    return record[stage] === filter;
+  });
+}
+
+function aggregateLinks(records, stages) {
+  const links = new Map();
+  const add = (sourceStage, targetStage, source, target, value) => {
+    const key = `${sourceStage}:${source}|${targetStage}:${target}`;
+    const current = links.get(key) || { sourceStage, targetStage, source, target, value: 0 };
+    current.value += value;
+    links.set(key, current);
+  };
+
+  if (stages.join(">") === "town>area") {
+    districtData.forEach((district) => {
+      const selected = records.filter((record) => record.town === district.name);
+      const value = selected.reduce((sum, record) => sum + record.value, 0);
+      if (value > 0) add("town", "area", district.name, areaGroup(district.avgArea), value);
+    });
+  } else {
+    records.forEach((record) => {
+      add("town", "age", record.town, record.age, record.value);
+      if (stages.includes("area")) add("age", "area", record.age, record.area, record.value);
+    });
+  }
+  return [...links.values()].filter((link) => link.value > 0);
+}
+
+function buildSankeyGraph(records, stages) {
+  const links = aggregateLinks(records, stages);
+  const nodes = new Map();
+  const ensureNode = (stage, name) => {
+    const key = `${stage}:${name}`;
+    if (!nodes.has(key)) nodes.set(key, { key, stage, name, value: 0, sourceOffset: 0, targetOffset: 0 });
+    return nodes.get(key);
+  };
+
+  links.forEach((link) => {
+    link.sourceNode = ensureNode(link.sourceStage, link.source);
+    link.targetNode = ensureNode(link.targetStage, link.target);
+  });
+
+  nodes.forEach((node) => {
+    const out = links.filter((link) => link.sourceNode === node).reduce((sum, link) => sum + link.value, 0);
+    const incoming = links.filter((link) => link.targetNode === node).reduce((sum, link) => sum + link.value, 0);
+    node.value = Math.max(out, incoming);
+  });
+
+  const stageX = stages.length === 2 ? [70, 960] : [56, 520, 960];
+  stages.forEach((stage, stageIndex) => {
+    const stageNodes = [...nodes.values()]
+      .filter((node) => node.stage === stage)
+      .sort((a, b) => {
+        if (stage === "town") return districtData.findIndex((item) => item.name === a.name) - districtData.findIndex((item) => item.name === b.name);
+        if (stage === "age") return ageFields.findIndex(([, label]) => label === a.name) - ageFields.findIndex(([, label]) => label === b.name);
+        return a.name.localeCompare(b.name, "zh-Hant");
+      });
+    const top = 82;
+    const height = 560;
+    const padding = stageNodes.length > 12 ? 6 : 16;
+    const total = stageNodes.reduce((sum, node) => sum + node.value, 0);
+    const scale = total ? (height - padding * (stageNodes.length - 1)) / total : 1;
+    let y = top;
+    stageNodes.forEach((node) => {
+      node.x = stageX[stageIndex];
+      node.y = y;
+      node.width = 24;
+      node.height = Math.max(4, node.value * scale);
+      node.scale = scale;
+      y += node.height + padding;
+    });
+  });
+
+  links
+    .sort((a, b) => a.targetNode.y - b.targetNode.y)
+    .forEach((link) => {
+      link.sourceY = link.sourceNode.y + link.sourceNode.sourceOffset + Math.max(0.75, (link.value * link.sourceNode.scale) / 2);
+      link.width = Math.max(1, link.value * link.sourceNode.scale);
+      link.sourceNode.sourceOffset += link.value * link.sourceNode.scale;
+    });
+  links
+    .sort((a, b) => a.sourceNode.y - b.sourceNode.y)
+    .forEach((link) => {
+      link.targetY = link.targetNode.y + link.targetNode.targetOffset + Math.max(0.75, (link.value * link.targetNode.scale) / 2);
+      link.targetNode.targetOffset += link.value * link.targetNode.scale;
+    });
+
+  return { nodes: [...nodes.values()], links };
+}
+
+function sankeyPath(link) {
+  const x0 = link.sourceNode.x + link.sourceNode.width;
+  const x1 = link.targetNode.x;
+  const mid = (x1 - x0) * 0.52;
+  return `M ${x0} ${link.sourceY} C ${x0 + mid} ${link.sourceY}, ${x1 - mid} ${link.targetY}, ${x1} ${link.targetY}`;
+}
+
+function sankeyColor(stage, index) {
+  const colors = {
+    town: ["#1f8a70", "#287f9f", "#646fa8", "#a35f7a"],
+    age: ["#2a9d8f", "#73a942", "#d19f38", "#d77a38", "#b95042", "#7f4f42"],
+    area: ["#315f9f", "#4d7d85", "#9b7b32", "#8a5f9f"],
+  };
+  const palette = colors[stage] || colors.town;
+  return palette[index % palette.length];
+}
+
+function renderSankeyStageOptions() {
+  const mode = document.querySelector("#sankeyMode").value;
+  const stageSelect = document.querySelector("#sankeyStage");
+  const previousStage = stageSelect.value || "all";
+  const stages = sankeyStages(mode);
+  stageSelect.innerHTML = [
+    '<option value="all">全部階段</option>',
+    ...stages.map((stage) => `<option value="${stage}">${stageLabels[stage]}</option>`),
+  ].join("");
+  stageSelect.value = stages.includes(previousStage) ? previousStage : "all";
+  renderSankeyFilterOptions();
+}
+
+function renderSankeyFilterOptions() {
+  const mode = document.querySelector("#sankeyMode").value;
+  const stage = document.querySelector("#sankeyStage").value;
+  const filterSelect = document.querySelector("#sankeyFilter");
+  const previousFilter = filterSelect.value || "all";
+  if (stage === "all") {
+    filterSelect.innerHTML = '<option value="all">全部資料</option>';
+    filterSelect.value = "all";
+    return;
+  }
+  const values = [...new Set(sankeyRecords().map((record) => record[stage]))].filter(Boolean);
+  const sorted = stage === "town"
+    ? districtData.map((item) => item.name)
+    : stage === "age"
+      ? ageFields.map(([, label]) => label)
+      : values.sort((a, b) => a.localeCompare(b, "zh-Hant"));
+  const modeStages = sankeyStages(mode);
+  const options = sorted.filter((value) => modeStages.includes(stage) && values.includes(value));
+  filterSelect.innerHTML = [
+    '<option value="all">全部項目</option>',
+    ...options.map((value) => `<option value="${value}">${value}</option>`),
+  ].join("");
+  filterSelect.value = options.includes(previousFilter) ? previousFilter : "all";
+}
+
+function renderSankey() {
+  const mode = document.querySelector("#sankeyMode").value;
+  const records = filteredSankeyRecords();
+  const stages = sankeyStages(mode);
+  const graph = buildSankeyGraph(records, stages);
+  const total = records.reduce((sum, record) => sum + record.value, 0);
+  const svg = document.querySelector("#sankeySvg");
+  const stageHeadings = stages
+    .map((stage, index) => `<text x="${stages.length === 2 ? [70, 960][index] : [56, 520, 960][index]}" y="42" class="sankey-heading">${stageLabels[stage]}</text>`)
+    .join("");
+  const links = graph.links
+    .map((link, index) => {
+      const sourceShare = pct(link.value, link.sourceNode.value);
+      const totalShare = pct(link.value, total);
+      return `
+        <path class="sankey-link" d="${sankeyPath(link)}" stroke="${sankeyColor(link.sourceStage, index)}"
+          stroke-width="${link.width}" opacity="0.32">
+          <title>${link.source} → ${link.target}\n${homes(link.value)}\n占篩選總量 ${totalShare}\n來源內占比 ${sourceShare}</title>
+        </path>
+      `;
+    })
+    .join("");
+  const nodes = graph.nodes
+    .map((node, index) => {
+      const labelX = node.stage === stages[stages.length - 1] ? node.x + node.width + 10 : node.x - 10;
+      const anchor = node.stage === stages[stages.length - 1] ? "start" : "end";
+      return `
+        <g class="sankey-node">
+          <rect x="${node.x}" y="${node.y}" width="${node.width}" height="${node.height}" rx="5"
+            fill="${sankeyColor(node.stage, index)}">
+            <title>${stageLabels[node.stage]}：${node.name}\n${homes(node.value)}\n占篩選總量 ${pct(node.value, total)}</title>
+          </rect>
+          <text x="${labelX}" y="${node.y + Math.max(12, node.height / 2 + 4)}" text-anchor="${anchor}">
+            ${node.name}
+          </text>
+          <text class="sankey-node-value" x="${labelX}" y="${node.y + Math.max(26, node.height / 2 + 20)}" text-anchor="${anchor}">
+            ${formatter.format(node.value)} · ${pct(node.value, total)}
+          </text>
+        </g>
+      `;
+    })
+    .join("");
+
+  svg.style.width = `${1200 * sankeyZoom}px`;
+  svg.style.height = `${720 * sankeyZoom}px`;
+  svg.innerHTML = `
+    <title id="sankeyTitle">彰化鄉鎮市住宅流量 Sankey</title>
+    <desc id="sankeyDesc">展示彰化各鄉鎮市住宅戶數流向屋齡與平均坪數級距。</desc>
+    ${stageHeadings}
+    <g>${links}${nodes}</g>
+  `;
+
+  const stage = document.querySelector("#sankeyStage").value;
+  const filter = document.querySelector("#sankeyFilter").value;
+  const filterText = stage === "all" || filter === "all" ? "全部資料" : `${stageLabels[stage]}：${filter}`;
+  document.querySelector("#sankeySummary").innerHTML = `
+    <article><span>目前篩選</span><strong>${filterText}</strong></article>
+    <article><span>納入戶數</span><strong>${homes(total)}</strong></article>
+    <article><span>節點 / 流向</span><strong>${graph.nodes.length} / ${graph.links.length}</strong></article>
+  `;
+
+  document.querySelector("#sankeyRows").innerHTML = graph.links
+    .sort((a, b) => b.value - a.value)
+    .map((link) => `
+      <tr>
+        <td>${link.source}</td>
+        <td>${link.target}</td>
+        <td>${homes(link.value)}</td>
+        <td>${pct(link.value, total)}</td>
+        <td>${pct(link.value, link.sourceNode.value)}</td>
+      </tr>
+    `)
+    .join("");
+}
+
 function selectDistrict(name) {
   selectedDistrict = name;
   renderDetails();
@@ -311,10 +609,43 @@ document.querySelector("#districtSearch").addEventListener("input", () => {
   renderTable();
 });
 document.querySelector("#metricSelect").addEventListener("change", renderMap);
+document.querySelector("#sankeyMode").addEventListener("change", () => {
+  renderSankeyStageOptions();
+  renderSankey();
+});
+document.querySelector("#sankeyStage").addEventListener("change", () => {
+  renderSankeyFilterOptions();
+  renderSankey();
+});
+document.querySelector("#sankeyFilter").addEventListener("change", renderSankey);
+document.querySelector("#sankeyZoom").addEventListener("input", (event) => {
+  sankeyZoom = Number(event.target.value);
+  renderSankey();
+});
+document.querySelector("#sankeyZoomOut").addEventListener("click", () => {
+  sankeyZoom = Math.max(0.55, sankeyZoom - 0.1);
+  document.querySelector("#sankeyZoom").value = sankeyZoom;
+  renderSankey();
+});
+document.querySelector("#sankeyZoomIn").addEventListener("click", () => {
+  sankeyZoom = Math.min(1.8, sankeyZoom + 0.1);
+  document.querySelector("#sankeyZoom").value = sankeyZoom;
+  renderSankey();
+});
+document.querySelector("#sankeyReset").addEventListener("click", () => {
+  sankeyZoom = 1;
+  document.querySelector("#sankeyZoom").value = "1";
+  document.querySelector("#sankeyStage").value = "all";
+  renderSankeyFilterOptions();
+  renderSankey();
+});
 
 // Initial Load
 renderCounty(countySnapshot); // Show initial snapshot
 refreshCounty(); // Try to fetch latest from CSV
+loadTownshipShapes();
 renderDetails();
 renderMap();
 renderTable();
+renderSankeyStageOptions();
+renderSankey();

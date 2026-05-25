@@ -301,6 +301,13 @@ a {
   margin-bottom: 16px;
 }
 
+.sankey-tools {
+  display: grid;
+  grid-template-columns: minmax(260px, 1.2fr) minmax(180px, 0.8fr) minmax(220px, 1fr) minmax(280px, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
 .search-field,
 .select-field {
   display: grid;
@@ -320,6 +327,39 @@ select {
   color: var(--ink);
   background: #fff;
   font: inherit;
+}
+
+.zoom-control {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.87rem;
+  font-weight: 700;
+}
+
+.zoom-control > div {
+  display: grid;
+  grid-template-columns: 42px minmax(90px, 1fr) 42px 78px;
+  gap: 8px;
+  align-items: center;
+}
+
+.icon-button {
+  display: grid;
+  place-items: center;
+  min-height: 46px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  background: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 1.25rem;
+  font-weight: 900;
+}
+
+input[type="range"] {
+  padding: 0;
 }
 
 .map-layout,
@@ -352,7 +392,7 @@ select {
 
 .district {
   stroke: #fff;
-  stroke-width: 4;
+  stroke-width: 2;
   cursor: pointer;
   transition:
     opacity 160ms ease,
@@ -400,6 +440,20 @@ select {
   font-size: 14px;
   font-weight: 700;
   text-anchor: middle;
+}
+
+.map-shape-label {
+  font-size: 12px;
+  paint-order: stroke;
+  stroke: rgba(255, 255, 255, 0.82);
+  stroke-width: 3px;
+}
+
+.map-shape-count {
+  font-size: 9px;
+  paint-order: stroke;
+  stroke: rgba(255, 255, 255, 0.82);
+  stroke-width: 2px;
 }
 
 .county-label,
@@ -522,6 +576,90 @@ select {
   margin-top: 16px;
 }
 
+.sankey-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.sankey-summary article {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 16px;
+  background: var(--panel);
+  box-shadow: 0 10px 32px rgba(23, 33, 43, 0.06);
+}
+
+.sankey-summary span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.sankey-summary strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 1.35rem;
+  line-height: 1.2;
+}
+
+.sankey-canvas {
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(246, 248, 249, 0.94)),
+    repeating-linear-gradient(90deg, transparent 0 119px, rgba(23, 33, 43, 0.035) 120px);
+  box-shadow: 0 10px 32px rgba(23, 33, 43, 0.06);
+}
+
+#sankeySvg {
+  display: block;
+  min-width: 100%;
+}
+
+.sankey-heading {
+  fill: var(--muted);
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.sankey-link {
+  fill: none;
+  stroke-linecap: round;
+  transition:
+    opacity 160ms ease,
+    stroke-width 160ms ease;
+}
+
+.sankey-link:hover {
+  opacity: 0.68;
+}
+
+.sankey-node rect {
+  stroke: rgba(255, 255, 255, 0.88);
+  stroke-width: 1.5;
+}
+
+.sankey-node text {
+  fill: var(--ink);
+  font-size: 13px;
+  font-weight: 900;
+  pointer-events: none;
+}
+
+.sankey-node-value {
+  fill: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.sankey-detail-wrap {
+  max-height: 430px;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
@@ -581,7 +719,9 @@ tbody tr.active {
   .hero,
   .map-layout,
   .live-layout,
-  .toolbar {
+  .toolbar,
+  .sankey-tools,
+  .sankey-summary {
     grid-template-columns: 1fr;
   }
 

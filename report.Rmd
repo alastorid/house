@@ -39,45 +39,78 @@ ch_county <- raw_county %>% filter(grepl("彰化", Name))
 ## 鄉鎮市互動式流量分析 (Sankey)
 
 本圖表展示了**行政區**、**坪數分布**與**屋齡區間**之間的關聯流向。
-*(註：鄉鎮市細節數據係依據彰化縣政府住宅分析報告之比例換算)*
+所有彰化 26 個鄉鎮市均納入，不因戶數小而省略。
+*(註：鄉鎮市細節數據係依據彰化縣政府主計處住宅分析表 2-4 與表 2-5；屋齡戶數由官方總宅數與占比換算並校正。)*
 
 ```{r sankey_data, echo=FALSE}
-# We use representative townships for the Sankey to keep it readable
-# In a real scenario, we'd parse the township CSV, but here we'll use the logic 
-# from the JS districtData to simulate the relationship flows for top towns.
-
-districts <- c("彰化市", "員林市", "鹿港鎮", "和美鎮", "溪湖鎮")
-
-# Define nodes
-nodes <- data.frame(
-  name = c(districts, 
-           "小坪數 (<25坪)", "中坪數 (25-50坪)", "大坪數 (>50坪)",
-           "新屋 (<10年)", "中齡屋 (10-30年)", "老屋 (>30年)")
+districts <- data.frame(
+  name = c("彰化市", "鹿港鎮", "和美鎮", "線西鄉", "伸港鄉", "福興鄉", "秀水鄉", "花壇鄉", "芬園鄉", "員林市", "溪湖鎮", "田中鎮", "大村鄉", "埔鹽鄉", "埔心鄉", "永靖鄉", "社頭鄉", "二水鄉", "北斗鎮", "二林鎮", "田尾鄉", "埤頭鄉", "芳苑鄉", "大城鄉", "竹塘鄉", "溪州鄉"),
+  total = c(80726, 27274, 29958, 4738, 11339, 13840, 12293, 14664, 6948, 41741, 17232, 13764, 10459, 8979, 10943, 10220, 12007, 5191, 12135, 16347, 9025, 10535, 10665, 4453, 4980, 9060),
+  under10 = c(4505, 2618, 2876, 479, 1707, 1217, 1151, 1188, 343, 5222, 1846, 992, 1390, 780, 1615, 726, 980, 186, 1298, 1326, 801, 818, 273, 134, 121, 704),
+  age10to20 = c(7072, 2046, 2957, 177, 729, 938, 1117, 1024, 470, 3272, 1187, 736, 1013, 545, 1074, 629, 680, 187, 815, 858, 559, 585, 1127, 124, 179, 705),
+  age20to30 = c(21045, 7034, 7636, 1422, 3011, 3580, 2988, 3541, 1567, 10314, 4971, 3324, 3675, 2531, 2782, 2715, 3376, 800, 3182, 4049, 2673, 2400, 1690, 726, 1025, 1994),
+  age30to40 = c(16000, 4522, 5449, 777, 1886, 3131, 2448, 2868, 1346, 8908, 3327, 2700, 1741, 1787, 2097, 2038, 2589, 868, 2263, 3032, 1219, 1711, 1383, 479, 706, 1416),
+  age40to50 = c(23193, 6344, 7337, 892, 2397, 3121, 2219, 3906, 1565, 9513, 3253, 3346, 1468, 1647, 1678, 2464, 2614, 1542, 2985, 3346, 1715, 2717, 3205, 1208, 1260, 1900),
+  over50 = c(8911, 4710, 3703, 991, 1609, 1853, 2370, 2137, 1657, 4512, 2648, 2666, 1172, 1689, 1697, 1648, 1768, 1608, 1592, 3736, 2058, 2304, 2987, 1782, 1689, 2341),
+  avgArea = c(49.41, 53.55, 56.23, 54.8, 55.64, 58.58, 52.6, 53.81, 55.75, 48.75, 53.43, 50.49, 55.9, 55.78, 46.69, 53.87, 53.03, 47.43, 53.14, 51.07, 50.81, 51.69, 51.46, 44.02, 45.51, 51.94)
 )
 
-# Define links (Simplified logic for visualization demonstration)
-# Link 1: District -> Size
-# Link 2: Size -> Age
-links <- data.frame(
-  source = c(rep(0:4, each=3), rep(5:7, each=3)),
-  target = c(rep(5:7, 5), rep(8:10, 3)),
-  value =  c(
-    # Dist to Size (hypothetical distributions)
-    200, 500, 300, # 彰化市
-    150, 450, 400, # 員林市
-    100, 400, 500, # 鹿港鎮
-    120, 380, 500, # 和美鎮
-    80, 420, 500,  # 溪湖鎮
-    # Size to Age
-    300, 400, 300, # 小 -> Age
-    200, 500, 1450, # 中 -> Age
-    150, 600, 1450  # 大 -> Age
+area_group <- function(avg_area) {
+  ifelse(avg_area < 48, "平均45-48坪",
+    ifelse(avg_area < 52, "平均48-52坪",
+      ifelse(avg_area < 55, "平均52-55坪", "平均55坪以上")
+    )
   )
-)
+}
+
+age_long <- districts %>%
+  mutate(area = area_group(avgArea)) %>%
+  select(name, total, area, under10, age10to20, age20to30, age30to40, age40to50, over50) %>%
+  pivot_longer(
+    cols = c(under10, age10to20, age20to30, age30to40, age40to50, over50),
+    names_to = "age_key",
+    values_to = "value"
+  ) %>%
+  mutate(age = recode(age_key,
+    under10 = "10年以下",
+    age10to20 = "10-20年",
+    age20to30 = "20-30年",
+    age30to40 = "30-40年",
+    age40to50 = "40-50年",
+    over50 = "50年以上"
+  ))
+
+town_age <- age_long %>%
+  transmute(source = name, target = age, value)
+
+age_area <- age_long %>%
+  group_by(age, area) %>%
+  summarise(value = sum(value), .groups = "drop") %>%
+  transmute(source = age, target = area, value)
+
+links_named <- bind_rows(town_age, age_area)
+node_values <- bind_rows(
+  links_named %>% group_by(name = source) %>% summarise(value = sum(value), .groups = "drop"),
+  links_named %>% group_by(name = target) %>% summarise(value = sum(value), .groups = "drop")
+) %>%
+  group_by(name) %>%
+  summarise(value = max(value), .groups = "drop")
+
+nodes <- data.frame(name = unique(c(links_named$source, links_named$target))) %>%
+  left_join(node_values, by = "name") %>%
+  mutate(label = paste0(name, "｜", format(value, big.mark = ","), "宅｜", round(value / sum(districts$total) * 100, 1), "%"))
+
+links <- links_named %>%
+  mutate(
+    source = match(source, nodes$name) - 1,
+    target = match(target, nodes$name) - 1
+  ) %>%
+  select(source, target, value)
 
 sankey <- sankeyNetwork(Links = links, Nodes = nodes, Source = "source",
-                        Target = "target", Value = "value", NodeID = "name",
-                        units = "宅", fontSize = 12, nodeWidth = 30)
+                        Target = "target", Value = "value", NodeID = "label",
+                        units = "宅", fontSize = 10, nodeWidth = 26,
+                        width = 980, height = 720)
 
 sankey
 ```
