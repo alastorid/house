@@ -253,6 +253,9 @@
             <div class="range-field">
               <span id="townRangeLabel">全部範圍</span>
               <div class="dual-range">
+                <div class="dual-range-track">
+                  <span id="townRangeFill"></span>
+                </div>
                 <input id="townRangeMin" type="range" min="0" max="100" value="0" />
                 <input id="townRangeMax" type="range" min="0" max="100" value="100" />
               </div>
@@ -296,12 +299,39 @@
 
         <div class="toolbar" aria-label="社經疊合控制列">
           <label class="select-field">
+            <span>資料面向</span>
+            <select id="overlayMetric">
+              <optgroup label="住宅">
+                <option value="total">房屋數量</option>
+                <option value="under5Count">5 年內戶數</option>
+                <option value="old30Count">30 年以上老屋戶數</option>
+                <option value="old30Share">30 年以上老屋比例</option>
+                <option value="over50">50 年以上老屋戶數</option>
+                <option value="avgAge">平均屋齡</option>
+                <option value="avgArea">平均坪數</option>
+              </optgroup>
+              <optgroup label="所得">
+                <option value="avgIncomeK">平均所得</option>
+                <option value="taxUnits">納稅單位戶數</option>
+              </optgroup>
+              <optgroup label="人口">
+                <option value="population">人口數</option>
+                <option value="seniorCount">65 歲以上人口</option>
+                <option value="seniorShare">65 歲以上比例</option>
+                <option value="youthCount">0-14 歲人口</option>
+                <option value="youthShare">0-14 歲比例</option>
+                <option value="workingAgeShare">15-64 歲比例</option>
+              </optgroup>
+            </select>
+          </label>
+          <label class="select-field">
             <span>排序</span>
             <select id="overlaySort">
-              <option value="seniorShare">65 歲以上比例</option>
-              <option value="old30Share">30 年以上老屋比例</option>
+              <option value="selected">依資料面向</option>
               <option value="avgIncomeK">平均所得</option>
               <option value="population">人口數</option>
+              <option value="seniorShare">65 歲以上比例</option>
+              <option value="old30Share">30 年以上老屋比例</option>
               <option value="total">房屋數量</option>
             </select>
           </label>
@@ -315,13 +345,13 @@
           </label>
         </div>
         <p class="note" id="socialStatus">正在載入所得與人口資料...</p>
-        <div class="overlay-legend">
-          <span><i class="legend-homes"></i>房屋數量</span>
-          <span><i class="legend-old"></i>30 年以上老屋比例</span>
-          <span><i class="legend-income"></i>平均所得</span>
-          <span><i class="legend-senior"></i>65 歲以上比例</span>
+        <div class="overlay-summary" id="overlaySummary"></div>
+        <div class="overlay-svg-wrap">
+          <svg id="overlaySvg" role="img" aria-labelledby="overlayTitle overlayDesc" viewBox="0 0 760 640">
+            <title id="overlayTitle">彰化鄉鎮社經疊合 SVG 圖</title>
+            <desc id="overlayDesc">依選取資料面向在各鄉鎮位置疊加符號柱。</desc>
+          </svg>
         </div>
-        <div class="overlay-list" id="overlayList"></div>
       </section>
 
       <section class="section disclaimer" id="disclaimer">
