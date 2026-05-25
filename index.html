@@ -18,6 +18,7 @@
           <a href="#county">縣級屋齡</a>
           <a href="#districts">鄉鎮市戶數</a>
           <a href="#sankey">流量分析</a>
+          <a href="#disclaimer">聲明</a>
           <a href="#sources">來源</a>
         </div>
       </nav>
@@ -39,19 +40,19 @@
         <div class="hero-panel" aria-label="彰化住宅摘要">
           <div>
             <span class="metric-label">最新縣級資料期</span>
-            <strong id="periodLabel">114Y4S</strong>
+            <strong id="periodLabel">114Y2S</strong>
           </div>
           <div>
             <span class="metric-label">房屋稅籍住宅類數量</span>
-            <strong id="countyTotal">428,352 宅</strong>
+            <strong id="countyTotal">425,964 宅</strong>
           </div>
           <div>
             <span class="metric-label">住宅平均屋齡</span>
-            <strong id="countyAvgAge">37.56 年</strong>
+            <strong id="countyAvgAge">37.80 年</strong>
           </div>
           <div>
             <span class="metric-label">5 年內住宅</span>
-            <strong id="countyUnder5">25,893 宅</strong>
+            <strong id="countyUnder5">23,189 宅</strong>
           </div>
         </div>
       </section>
@@ -79,7 +80,7 @@
             <h2>彰化各鄉鎮市具體戶數</h2>
           </div>
           <p class="section-kicker">
-            鄉鎮市資料採彰化縣政府主計處住宅分析表 2-4 與表 2-5。屋齡與坪數戶數由官方總宅數與占比換算，並校正至各區總宅數。
+            鄉鎮市資料採彰化縣政府主計處住宅分析表 2-4 與表 2-5。屋齡戶數由官方總宅數與占比換算並校正；坪數為各鄉鎮市平均住宅面積。
           </p>
         </div>
 
@@ -211,6 +212,41 @@
             </thead>
             <tbody id="sankeyRows"></tbody>
           </table>
+        </div>
+      </section>
+
+      <section class="section disclaimer" id="disclaimer">
+        <div class="section-title">
+          <div>
+            <p class="eyebrow">Data Limits</p>
+            <h2>資料限制與免責聲明</h2>
+          </div>
+        </div>
+        <div class="disclaimer-grid">
+          <article>
+            <h3>縣級數字</h3>
+            <p>
+              彰化縣整體戶數、平均屋齡與各屋齡級距，直接讀取本 repo 內由 GitHub Actions 抓取的 SEGIS 官方 CSV；目前期別為 114Y2S。
+            </p>
+          </article>
+          <article>
+            <h3>鄉鎮市數字</h3>
+            <p>
+              鄉鎮市屋齡與平均坪數來自彰化縣政府主計處住宅分析 PDF 表 2-4、表 2-5；這批資料與最新 SEGIS 縣級 CSV 不一定是同一統計期。
+            </p>
+          </article>
+          <article>
+            <h3>Sankey 解讀</h3>
+            <p>
+              Sankey 的坪數級距是以「鄉鎮市平均坪數」分組後與屋齡戶數連結，屬區域層級分析；目前沒有官方「屋齡 × 坪數」交叉表，因此不可解讀為各屋齡的真實平均坪數。
+            </p>
+          </article>
+          <article>
+            <h3>使用責任</h3>
+            <p>
+              本頁以公開資料整理與視覺化為目的。雖已核對欄位、總數與來源連結，仍可能因官方資料修正、統計期差異或換算四捨五入產生差異；正式引用請以原始官方資料為準。
+            </p>
+          </article>
         </div>
       </section>
 

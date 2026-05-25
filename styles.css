@@ -267,7 +267,8 @@ a {
 }
 
 .stat-grid,
-.source-grid {
+.source-grid,
+.disclaimer-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
@@ -275,6 +276,7 @@ a {
 
 .stat-card,
 .source-grid article,
+.disclaimer-grid article,
 .detail-panel,
 .map-card,
 .table-wrap {
@@ -770,11 +772,21 @@ tbody tr.active {
   padding: 22px;
 }
 
-.source-grid h3 {
+.disclaimer-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.disclaimer-grid article {
+  padding: 20px;
+}
+
+.source-grid h3,
+.disclaimer-grid h3 {
   margin: 0 0 8px;
 }
 
-.source-grid p {
+.source-grid p,
+.disclaimer-grid p {
   color: var(--muted);
 }
 
@@ -814,6 +826,7 @@ tbody tr.active {
 
   .stat-grid,
   .source-grid,
+  .disclaimer-grid,
   .live-stats,
   .toolbar.compact {
     grid-template-columns: 1fr;
