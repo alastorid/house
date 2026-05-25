@@ -168,11 +168,30 @@ function countyFromCsv(text) {
 }
 
 function districtMetric(item, metric) {
+  const social = socialByTown.get(item.name);
+  const under5 = item.under10;
+  const old30 = item.age30to40 + item.age40to50 + item.over50;
+  const old40 = item.age40to50 + item.over50;
+  const workingAge = (social?.age15_44 || 0) + (social?.age45_64 || 0);
+  if (metric === "old30") return old30;
+  if (metric === "under5Share") return under5 / item.total;
+  if (metric === "under5Count") return under5;
   if (metric === "under10Share") return item.under10 / item.total;
-  if (metric === "avgIncomeK") return socialByTown.get(item.name)?.avgIncomeK || 0;
-  if (metric === "population") return socialByTown.get(item.name)?.population || 0;
-  if (metric === "seniorShare") return socialByTown.get(item.name)?.seniorShare || 0;
-  if (metric === "youthShare") return socialByTown.get(item.name)?.youthShare || 0;
+  if (metric === "under10") return item.under10;
+  if (metric === "old30Share") return old30 / item.total;
+  if (metric === "old30Count") return old30;
+  if (metric === "old40Share") return old40 / item.total;
+  if (metric === "old40Count") return old40;
+  if (metric === "over50Share") return item.over50 / item.total;
+  if (metric === "over50") return item.over50;
+  if (metric === "avgIncomeK") return social?.avgIncomeK || 0;
+  if (metric === "taxUnits") return social?.taxUnits || 0;
+  if (metric === "population") return social?.population || 0;
+  if (metric === "seniorShare") return social?.seniorShare || 0;
+  if (metric === "seniorCount") return social?.age65Plus || 0;
+  if (metric === "youthShare") return social?.youthShare || 0;
+  if (metric === "youthCount") return social?.age0_14 || 0;
+  if (metric === "workingAgeShare") return social?.population ? workingAge / social.population : 0;
   if (metric === "avgAge") return item.avgAge;
   if (metric === "avgArea") return item.avgArea;
   if (metric === "total") return item.total;
@@ -181,9 +200,21 @@ function districtMetric(item, metric) {
 
 function colorFor(value, min, max, metric) {
   const t = max === min ? 0.5 : (value - min) / (max - min);
-  if (metric === "under10Share") return `hsl(${155 - t * 55} 48% ${78 - t * 34}%)`;
-  if (metric === "avgArea") return `hsl(${205 - t * 45} 52% ${80 - t * 36}%)`;
+  if (["under5Share", "under5Count", "under10Share", "under10"].includes(metric)) return `hsl(${155 - t * 55} 48% ${78 - t * 34}%)`;
+  if (["avgArea", "avgIncomeK", "taxUnits", "population", "youthShare", "youthCount", "workingAgeShare"].includes(metric)) return `hsl(${205 - t * 45} 52% ${80 - t * 36}%)`;
   return `hsl(${42 - t * 20} 76% ${78 - t * 34}%)`;
+}
+
+function metricLabel(item, metric) {
+  const value = districtMetric(item, metric);
+  if (["under5Share", "under10Share", "old30Share", "old40Share", "over50Share", "seniorShare", "youthShare", "workingAgeShare"].includes(metric)) {
+    return percentText(value);
+  }
+  if (metric === "avgAge") return `${value.toFixed(1)}年`;
+  if (metric === "avgArea") return `${value.toFixed(1)}坪`;
+  if (metric === "avgIncomeK") return moneyK(value);
+  if (["under5Count", "under10", "old30Count", "old40Count", "over50", "total"].includes(metric)) return formatter.format(Math.round(value));
+  return formatter.format(Math.round(value));
 }
 
 async function loadTownshipShapes() {
@@ -297,14 +328,7 @@ function renderMap() {
       .map((item) => {
         const value = districtMetric(item, metric);
         const shape = shapeByName.get(item.name);
-        let label = pct(metric === "under10Share" ? item.under10 : item.over50, item.total);
-        if (metric === "avgAge") label = `${item.avgAge}年`;
-        if (metric === "avgArea") label = `${item.avgArea.toFixed(1)}坪`;
-        if (metric === "avgIncomeK") label = moneyK(socialByTown.get(item.name)?.avgIncomeK);
-        if (metric === "population") label = formatter.format(socialByTown.get(item.name)?.population || 0);
-        if (metric === "seniorShare") label = percentText(socialByTown.get(item.name)?.seniorShare || 0);
-        if (metric === "youthShare") label = percentText(socialByTown.get(item.name)?.youthShare || 0);
-        if (metric === "total") label = formatter.format(item.total);
+        const label = metricLabel(item, metric);
         if (shape) {
           return `
             <g data-district="${item.name}">
@@ -677,12 +701,6 @@ function renderSankey() {
 }
 
 function townRangeMetricValue(town, metric = rangeFilter.metric) {
-  const social = socialByTown.get(town.name);
-  if (metric === "old30") return town.age30to40 + town.age40to50 + town.over50;
-  if (metric === "avgIncomeK") return social?.avgIncomeK || 0;
-  if (metric === "population") return social?.population || 0;
-  if (metric === "seniorShare") return social?.seniorShare || 0;
-  if (metric === "youthShare") return social?.youthShare || 0;
   return districtMetric(town, metric);
 }
 

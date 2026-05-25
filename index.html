@@ -93,15 +93,35 @@
           <label class="select-field">
             <span>地圖顏色</span>
             <select id="metricSelect">
-              <option value="over50Share">50 年以上占比</option>
-              <option value="under10Share">10 年以下占比</option>
-              <option value="avgAge">平均屋齡</option>
-              <option value="avgArea">平均坪數</option>
-              <option value="total">總宅數</option>
-              <option value="avgIncomeK">平均所得</option>
-              <option value="population">人口數</option>
-              <option value="seniorShare">65 歲以上比例</option>
-              <option value="youthShare">0-14 歲比例</option>
+              <optgroup label="住宅總量">
+                <option value="total">總宅數</option>
+                <option value="avgArea">平均坪數</option>
+              </optgroup>
+              <optgroup label="新屋">
+                <option value="under5Share">5 年內占比</option>
+                <option value="under5Count">5 年內戶數</option>
+                <option value="under10Share">10 年以下占比</option>
+                <option value="under10">10 年以下戶數</option>
+              </optgroup>
+              <optgroup label="老屋">
+                <option value="old30Share">30 年以上占比</option>
+                <option value="old30Count">30 年以上戶數</option>
+                <option value="old40Share">40 年以上占比</option>
+                <option value="old40Count">40 年以上戶數</option>
+                <option value="over50Share">50 年以上占比</option>
+                <option value="over50">50 年以上戶數</option>
+                <option value="avgAge">平均屋齡</option>
+              </optgroup>
+              <optgroup label="所得與人口">
+                <option value="avgIncomeK">平均所得</option>
+                <option value="taxUnits">納稅單位戶數</option>
+                <option value="population">人口數</option>
+                <option value="seniorShare">65 歲以上比例</option>
+                <option value="seniorCount">65 歲以上人口</option>
+                <option value="youthShare">0-14 歲比例</option>
+                <option value="youthCount">0-14 歲人口</option>
+                <option value="workingAgeShare">15-64 歲比例</option>
+              </optgroup>
             </select>
           </label>
         </div>
@@ -194,20 +214,40 @@
             <button class="button plain" id="townSelectNone" type="button">清除</button>
             <button class="button plain" id="townInvert" type="button">反選</button>
           </div>
+          <div class="town-chip-grid" id="townChips"></div>
           <div class="range-filter">
             <label class="select-field">
               <span>自動篩選指標</span>
               <select id="townRangeMetric">
-                <option value="total">房屋數量</option>
-                <option value="old30">30 年以上老屋數量</option>
-                <option value="over50">50 年以上老屋數量</option>
-                <option value="under10">10 年以下住宅數量</option>
-                <option value="avgAge">平均屋齡</option>
-                <option value="avgArea">平均坪數</option>
-                <option value="avgIncomeK">平均所得</option>
-                <option value="population">人口數</option>
-                <option value="seniorShare">65 歲以上比例</option>
-                <option value="youthShare">0-14 歲比例</option>
+                <optgroup label="住宅總量">
+                  <option value="total">總宅數</option>
+                  <option value="avgArea">平均坪數</option>
+                </optgroup>
+                <optgroup label="新屋">
+                  <option value="under5Share">5 年內占比</option>
+                  <option value="under5Count">5 年內戶數</option>
+                  <option value="under10Share">10 年以下占比</option>
+                  <option value="under10">10 年以下戶數</option>
+                </optgroup>
+                <optgroup label="老屋">
+                  <option value="old30Share">30 年以上占比</option>
+                  <option value="old30Count">30 年以上戶數</option>
+                  <option value="old40Share">40 年以上占比</option>
+                  <option value="old40Count">40 年以上戶數</option>
+                  <option value="over50Share">50 年以上占比</option>
+                  <option value="over50">50 年以上戶數</option>
+                  <option value="avgAge">平均屋齡</option>
+                </optgroup>
+                <optgroup label="所得與人口">
+                  <option value="avgIncomeK">平均所得</option>
+                  <option value="taxUnits">納稅單位戶數</option>
+                  <option value="population">人口數</option>
+                  <option value="seniorShare">65 歲以上比例</option>
+                  <option value="seniorCount">65 歲以上人口</option>
+                  <option value="youthShare">0-14 歲比例</option>
+                  <option value="youthCount">0-14 歲人口</option>
+                  <option value="workingAgeShare">15-64 歲比例</option>
+                </optgroup>
               </select>
             </label>
             <div class="range-field">
@@ -218,7 +258,6 @@
               </div>
             </div>
           </div>
-          <div class="town-chip-grid" id="townChips"></div>
         </div>
 
         <div class="sankey-summary" id="sankeySummary"></div>
