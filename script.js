@@ -173,6 +173,11 @@ function districtMetric(item, metric) {
   const old30 = item.age30to40 + item.age40to50 + item.over50;
   const old40 = item.age40to50 + item.over50;
   const workingAge = (social?.age15_44 || 0) + (social?.age45_64 || 0);
+  const youth = social?.age0_14 || 0;
+  const senior = social?.age65Plus || 0;
+  
+  if (metric === "dependencyRatio") return workingAge ? (youth + senior) : 0;
+  if (metric === "dependencyRatioShare") return workingAge ? (youth + senior) / workingAge : 0;
   if (metric === "old30") return old30;
   if (metric === "under5Share") return under5 / item.total;
   if (metric === "under5Count") return under5;
@@ -200,20 +205,19 @@ function districtMetric(item, metric) {
 
 function colorFor(value, min, max, metric) {
   const t = max === min ? 0.5 : (value - min) / (max - min);
-  if (["under5Share", "under5Count", "under10Share", "under10"].includes(metric)) return `hsl(${155 - t * 55} 48% ${78 - t * 34}%)`;
-  if (["avgArea", "avgIncomeK", "taxUnits", "population", "youthShare", "youthCount", "workingAgeShare"].includes(metric)) return `hsl(${205 - t * 45} 52% ${80 - t * 36}%)`;
-  return `hsl(${42 - t * 20} 76% ${78 - t * 34}%)`;
+  // Unify to "cold" (blue) palette as requested (warm/cold style was mixed; normalization to cold)
+  return `hsl(${205 - t * 45} 52% ${80 - t * 36}%)`;
 }
 
 function metricLabel(item, metric) {
   const value = districtMetric(item, metric);
-  if (["under5Share", "under10Share", "old30Share", "old40Share", "over50Share", "seniorShare", "youthShare", "workingAgeShare"].includes(metric)) {
+  if (["under5Share", "under10Share", "old30Share", "old40Share", "over50Share", "seniorShare", "youthShare", "workingAgeShare", "dependencyRatioShare"].includes(metric)) {
     return percentText(value);
   }
   if (metric === "avgAge") return `${value.toFixed(1)}年`;
   if (metric === "avgArea") return `${value.toFixed(1)}坪`;
   if (metric === "avgIncomeK") return moneyK(value);
-  if (["under5Count", "under10", "old30Count", "old40Count", "over50", "total"].includes(metric)) return formatter.format(Math.round(value));
+  if (["under5Count", "under10", "old30Count", "old40Count", "over50", "total", "dependencyRatio", "seniorCount", "youthCount"].includes(metric)) return formatter.format(Math.round(value));
   return formatter.format(Math.round(value));
 }
 
