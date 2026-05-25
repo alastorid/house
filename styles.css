@@ -164,6 +164,12 @@ a {
   background: rgba(255, 255, 255, 0.12);
 }
 
+.button.plain {
+  color: var(--teal);
+  border-color: var(--line);
+  background: #fff;
+}
+
 .hero-panel {
   display: grid;
   gap: 1px;
@@ -306,6 +312,71 @@ a {
   grid-template-columns: minmax(260px, 1.2fr) minmax(180px, 0.8fr) minmax(220px, 1fr) minmax(280px, 1fr);
   gap: 12px;
   margin-bottom: 16px;
+}
+
+.town-filter-panel {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  background: var(--panel);
+  box-shadow: 0 10px 32px rgba(23, 33, 43, 0.06);
+}
+
+.town-filter-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.town-filter-actions strong {
+  margin-right: auto;
+  font-size: 0.96rem;
+}
+
+.town-filter-actions .button {
+  min-height: 36px;
+  padding: 7px 12px;
+  font-size: 0.86rem;
+}
+
+.town-chip-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(86px, 1fr));
+  gap: 8px;
+}
+
+.town-chip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 7px 9px;
+  color: var(--muted);
+  background: #fff;
+  cursor: pointer;
+  font-size: 0.88rem;
+  font-weight: 800;
+  text-align: center;
+  user-select: none;
+}
+
+.town-chip.active {
+  color: #fff;
+  border-color: var(--teal);
+  background: var(--teal);
+}
+
+.town-chip input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
 }
 
 .search-field,
@@ -607,6 +678,7 @@ input[type="range"] {
 
 .sankey-canvas {
   overflow: auto;
+  max-height: 82vh;
   border: 1px solid var(--line);
   border-radius: 8px;
   background:
@@ -645,15 +717,21 @@ input[type="range"] {
 
 .sankey-node text {
   fill: var(--ink);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 900;
   pointer-events: none;
 }
 
 .sankey-node-value {
   fill: var(--muted);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 800;
+}
+
+.sankey-empty {
+  fill: var(--muted);
+  font-size: 24px;
+  font-weight: 900;
 }
 
 .sankey-detail-wrap {
@@ -723,6 +801,10 @@ tbody tr.active {
   .sankey-tools,
   .sankey-summary {
     grid-template-columns: 1fr;
+  }
+
+  .town-filter-actions strong {
+    width: 100%;
   }
 
   .hero {

@@ -149,7 +149,7 @@
             <h2>鄉鎮市互動式流量分析</h2>
           </div>
           <p class="section-kicker">
-            全部 26 個彰化鄉鎮市都保留在圖中。線寬代表戶數，標籤與下方明細顯示占比，篩選可鎖定任一階段。
+            線寬代表戶數，標籤與下方明細顯示占比；可勾選鄉鎮、鎖定階段並縮放檢視。
           </p>
         </div>
 
@@ -181,9 +181,19 @@
           </div>
         </div>
 
+        <div class="town-filter-panel" aria-label="鄉鎮顯示切換">
+          <div class="town-filter-actions">
+            <strong>鄉鎮顯示</strong>
+            <button class="button dark" id="townSelectAll" type="button">全選</button>
+            <button class="button plain" id="townSelectNone" type="button">清除</button>
+            <button class="button plain" id="townInvert" type="button">反選</button>
+          </div>
+          <div class="town-chip-grid" id="townChips"></div>
+        </div>
+
         <div class="sankey-summary" id="sankeySummary"></div>
         <div class="sankey-canvas">
-          <svg id="sankeySvg" role="img" aria-labelledby="sankeyTitle sankeyDesc" viewBox="0 0 1200 720">
+          <svg id="sankeySvg" role="img" aria-labelledby="sankeyTitle sankeyDesc" viewBox="0 0 1200 980">
             <title id="sankeyTitle">彰化鄉鎮市住宅流量 Sankey</title>
             <desc id="sankeyDesc">展示彰化各鄉鎮市住宅戶數流向屋齡與平均坪數級距。</desc>
           </svg>

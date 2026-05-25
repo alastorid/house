@@ -53,6 +53,7 @@ const formatter = new Intl.NumberFormat("zh-TW");
 let selectedDistrict = "彰化市";
 let sankeyZoom = 1;
 let townshipShapes = null;
+let selectedSankeyTowns = new Set();
 
 const ageFields = [
   ["under10", "10年以下"],
@@ -371,6 +372,7 @@ function filteredSankeyRecords() {
   const filter = document.querySelector("#sankeyFilter").value;
   const stages = sankeyStages(mode);
   return sankeyRecords().filter((record) => {
+    if (!selectedSankeyTowns.has(record.town)) return false;
     if (stage === "all" || filter === "all") return true;
     if (!stages.includes(stage)) return true;
     return record[stage] === filter;
@@ -388,6 +390,7 @@ function aggregateLinks(records, stages) {
 
   if (stages.join(">") === "town>area") {
     districtData.forEach((district) => {
+      if (!selectedSankeyTowns.has(district.name)) return;
       const selected = records.filter((record) => record.town === district.name);
       const value = selected.reduce((sum, record) => sum + record.value, 0);
       if (value > 0) add("town", "area", district.name, areaGroup(district.avgArea), value);
@@ -430,9 +433,9 @@ function buildSankeyGraph(records, stages) {
         if (stage === "age") return ageFields.findIndex(([, label]) => label === a.name) - ageFields.findIndex(([, label]) => label === b.name);
         return a.name.localeCompare(b.name, "zh-Hant");
       });
-    const top = 82;
-    const height = 560;
-    const padding = stageNodes.length > 12 ? 6 : 16;
+    const top = 86;
+    const height = 800;
+    const padding = stageNodes.length > 18 ? 10 : stageNodes.length > 12 ? 14 : 22;
     const total = stageNodes.reduce((sum, node) => sum + node.value, 0);
     const scale = total ? (height - padding * (stageNodes.length - 1)) / total : 1;
     let y = top;
@@ -503,7 +506,8 @@ function renderSankeyFilterOptions() {
     filterSelect.value = "all";
     return;
   }
-  const values = [...new Set(sankeyRecords().map((record) => record[stage]))].filter(Boolean);
+  const availableRecords = sankeyRecords().filter((record) => selectedSankeyTowns.has(record.town));
+  const values = [...new Set(availableRecords.map((record) => record[stage]))].filter(Boolean);
   const sorted = stage === "town"
     ? districtData.map((item) => item.name)
     : stage === "age"
@@ -518,6 +522,31 @@ function renderSankeyFilterOptions() {
   filterSelect.value = options.includes(previousFilter) ? previousFilter : "all";
 }
 
+function renderTownChips() {
+  const selectedCount = selectedSankeyTowns.size;
+  document.querySelector("#townChips").innerHTML = districtData
+    .map((town) => {
+      const checked = selectedSankeyTowns.has(town.name);
+      return `
+        <label class="town-chip ${checked ? "active" : ""}">
+          <input type="checkbox" value="${town.name}" ${checked ? "checked" : ""} />
+          <span>${town.name}</span>
+        </label>
+      `;
+    })
+    .join("");
+  document.querySelector(".town-filter-actions strong").textContent = `鄉鎮顯示 (${selectedCount}/26)`;
+  document.querySelectorAll("#townChips input").forEach((input) => {
+    input.addEventListener("change", () => {
+      if (input.checked) selectedSankeyTowns.add(input.value);
+      else selectedSankeyTowns.delete(input.value);
+      renderTownChips();
+      renderSankeyFilterOptions();
+      renderSankey();
+    });
+  });
+}
+
 function renderSankey() {
   const mode = document.querySelector("#sankeyMode").value;
   const records = filteredSankeyRecords();
@@ -528,6 +557,22 @@ function renderSankey() {
   const stageHeadings = stages
     .map((stage, index) => `<text x="${stages.length === 2 ? [70, 960][index] : [56, 520, 960][index]}" y="42" class="sankey-heading">${stageLabels[stage]}</text>`)
     .join("");
+  if (total === 0) {
+    svg.style.width = `${1200 * sankeyZoom}px`;
+    svg.style.height = `${980 * sankeyZoom}px`;
+    svg.innerHTML = `
+      <title id="sankeyTitle">彰化鄉鎮市住宅流量 Sankey</title>
+      <desc id="sankeyDesc">尚未選取鄉鎮。</desc>
+      <text x="600" y="480" text-anchor="middle" class="sankey-empty">請至少選取一個鄉鎮市</text>
+    `;
+    document.querySelector("#sankeySummary").innerHTML = `
+      <article><span>目前篩選</span><strong>未選取鄉鎮</strong></article>
+      <article><span>納入戶數</span><strong>0 宅</strong></article>
+      <article><span>節點 / 流向</span><strong>0 / 0</strong></article>
+    `;
+    document.querySelector("#sankeyRows").innerHTML = "";
+    return;
+  }
   const links = graph.links
     .map((link, index) => {
       const sourceShare = pct(link.value, link.sourceNode.value);
@@ -562,7 +607,7 @@ function renderSankey() {
     .join("");
 
   svg.style.width = `${1200 * sankeyZoom}px`;
-  svg.style.height = `${720 * sankeyZoom}px`;
+  svg.style.height = `${980 * sankeyZoom}px`;
   svg.innerHTML = `
     <title id="sankeyTitle">彰化鄉鎮市住宅流量 Sankey</title>
     <desc id="sankeyDesc">展示彰化各鄉鎮市住宅戶數流向屋齡與平均坪數級距。</desc>
@@ -576,7 +621,7 @@ function renderSankey() {
   document.querySelector("#sankeySummary").innerHTML = `
     <article><span>目前篩選</span><strong>${filterText}</strong></article>
     <article><span>納入戶數</span><strong>${homes(total)}</strong></article>
-    <article><span>節點 / 流向</span><strong>${graph.nodes.length} / ${graph.links.length}</strong></article>
+    <article><span>鄉鎮 / 流向</span><strong>${selectedSankeyTowns.size} / ${graph.links.length}</strong></article>
   `;
 
   document.querySelector("#sankeyRows").innerHTML = graph.links
@@ -636,6 +681,26 @@ document.querySelector("#sankeyReset").addEventListener("click", () => {
   sankeyZoom = 1;
   document.querySelector("#sankeyZoom").value = "1";
   document.querySelector("#sankeyStage").value = "all";
+  selectedSankeyTowns = new Set(districtData.map((town) => town.name));
+  renderTownChips();
+  renderSankeyFilterOptions();
+  renderSankey();
+});
+document.querySelector("#townSelectAll").addEventListener("click", () => {
+  selectedSankeyTowns = new Set(districtData.map((town) => town.name));
+  renderTownChips();
+  renderSankeyFilterOptions();
+  renderSankey();
+});
+document.querySelector("#townSelectNone").addEventListener("click", () => {
+  selectedSankeyTowns = new Set();
+  renderTownChips();
+  renderSankeyFilterOptions();
+  renderSankey();
+});
+document.querySelector("#townInvert").addEventListener("click", () => {
+  selectedSankeyTowns = new Set(districtData.map((town) => town.name).filter((name) => !selectedSankeyTowns.has(name)));
+  renderTownChips();
   renderSankeyFilterOptions();
   renderSankey();
 });
@@ -647,5 +712,7 @@ loadTownshipShapes();
 renderDetails();
 renderMap();
 renderTable();
+selectedSankeyTowns = new Set(districtData.map((town) => town.name));
+renderTownChips();
 renderSankeyStageOptions();
 renderSankey();
