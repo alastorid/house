@@ -241,6 +241,7 @@ async function loadSocialData() {
     document.querySelector("#socialStatus").textContent = `無法載入所得與人口資料：${error.message}`;
   }
   renderMap();
+  renderDetails();
   renderRangeControls();
   renderSankeyFilterOptions();
   renderSankey();
@@ -371,16 +372,49 @@ function renderDetails() {
   const item = districtData.find((district) => district.name === selectedDistrict) || districtData[0];
   const social = socialByTown.get(item.name);
   const old30 = item.age30to40 + item.age40to50 + item.over50;
+  const working = (social?.age15_44 || 0) + (social?.age45_64 || 0);
   document.querySelector("#selectedName").textContent = item.name;
   document.querySelector("#selectedTotal").textContent = homes(item.total);
   document.querySelector("#selectedAvg").textContent = `${item.avgAge} 年`;
   document.querySelector("#selectedArea").textContent = `${item.avgArea.toFixed(2)} 坪`;
+  document.querySelector("#selectedIncome").textContent = social ? moneyK(social.avgIncomeK) : "--";
+  document.querySelector("#selectedTaxUnits").textContent = social ? formatter.format(social.taxUnits) : "--";
+  document.querySelector("#selectedPopulation").textContent = social ? formatter.format(social.population) : "--";
+  document.querySelector("#selectedYouth").textContent = social ? `${formatter.format(social.age0_14)} (${percentText(social.youthShare)})` : "--";
+  document.querySelector("#selectedWorking").textContent = social ? `${formatter.format(working)} (${percentText(working / social.population)})` : "--";
+  document.querySelector("#selectedSenior").textContent = social ? `${formatter.format(social.age65Plus)} (${percentText(social.seniorShare)})` : "--";
   document.querySelector("#selectedYoung").textContent = `${homes(item.under10)} (${pct(item.under10, item.total)})`;
   document.querySelector("#selectedOld30").textContent = `${homes(old30)} (${pct(old30, item.total)})`;
   document.querySelector("#selectedOld50").textContent = `${homes(item.over50)} (${pct(item.over50, item.total)})`;
-  if (social) {
-    document.querySelector("#selectedArea").textContent = `${item.avgArea.toFixed(2)} 坪 · 所得 ${moneyK(social.avgIncomeK)}`;
-  }
+  renderOverlayDetail(item);
+}
+
+function renderOverlayDetail(item = districtData.find((district) => district.name === selectedDistrict) || districtData[0]) {
+  const panel = document.querySelector("#overlayDetail");
+  if (!panel) return;
+  const social = socialByTown.get(item.name);
+  const old30 = item.age30to40 + item.age40to50 + item.over50;
+  const old40 = item.age40to50 + item.over50;
+  const working = (social?.age15_44 || 0) + (social?.age45_64 || 0);
+  panel.innerHTML = `
+    <p class="eyebrow">Selected Township</p>
+    <h3>${item.name}</h3>
+    <dl class="overlay-detail-grid">
+      <div><dt>總宅數</dt><dd>${homes(item.total)}</dd></div>
+      <div><dt>平均屋齡</dt><dd>${item.avgAge} 年</dd></div>
+      <div><dt>平均坪數</dt><dd>${item.avgArea.toFixed(2)} 坪</dd></div>
+      <div><dt>5 年內戶數</dt><dd>${homes(item.under10)} (${pct(item.under10, item.total)})</dd></div>
+      <div><dt>30 年以上戶數</dt><dd>${homes(old30)} (${pct(old30, item.total)})</dd></div>
+      <div><dt>40 年以上戶數</dt><dd>${homes(old40)} (${pct(old40, item.total)})</dd></div>
+      <div><dt>50 年以上戶數</dt><dd>${homes(item.over50)} (${pct(item.over50, item.total)})</dd></div>
+      <div><dt>平均所得</dt><dd>${social ? moneyK(social.avgIncomeK) : "--"}</dd></div>
+      <div><dt>納稅單位</dt><dd>${social ? formatter.format(social.taxUnits) : "--"}</dd></div>
+      <div><dt>人口數</dt><dd>${social ? formatter.format(social.population) : "--"}</dd></div>
+      <div><dt>0-14 歲</dt><dd>${social ? `${formatter.format(social.age0_14)} (${percentText(social.youthShare)})` : "--"}</dd></div>
+      <div><dt>15-64 歲</dt><dd>${social ? `${formatter.format(working)} (${percentText(working / social.population)})` : "--"}</dd></div>
+      <div><dt>65 歲以上</dt><dd>${social ? `${formatter.format(social.age65Plus)} (${percentText(social.seniorShare)})` : "--"}</dd></div>
+    </dl>
+  `;
 }
 
 function renderTable() {
@@ -817,6 +851,7 @@ function overlayFormat(metric, value) {
 
 function renderOverlay() {
   const metric = document.querySelector("#overlayMetric").value;
+  const colorMetric = document.querySelector("#overlayColorMetric").value;
   const sortChoice = document.querySelector("#overlaySort").value;
   const sort = sortChoice === "selected" ? metric : sortChoice;
   const limit = Number(document.querySelector("#overlayLimit").value);
@@ -827,15 +862,19 @@ function renderOverlay() {
   const max = Math.max(...values, 1);
   const kind = overlayKind(metric);
   const label = document.querySelector("#overlayMetric").selectedOptions[0]?.textContent || "資料";
+  const colorLabel = document.querySelector("#overlayColorMetric").selectedOptions[0]?.textContent || "色深";
   const color = kind === "people" ? "#315f9f" : kind === "income" ? "#d79b35" : "#126d78";
   const iconFill = kind === "income" ? "#9b6a1d" : kind === "people" ? "#254d82" : "#0f5d65";
   const shapeByName = new Map((townshipShapes?.towns || []).map((shape) => [shape.name, shape]));
   const activeNames = new Set(rows.map((town) => town.name));
+  const colorValues = districtData.map((town) => districtMetric(town, colorMetric));
+  const colorMin = Math.min(...colorValues);
+  const colorMax = Math.max(...colorValues);
   const barMax = 130;
   document.querySelector("#overlaySummary").innerHTML = `
-    <article><span>資料面向</span><strong>${label}</strong></article>
+    <article><span>柱狀資料</span><strong>${label}</strong></article>
+    <article><span>底圖色深</span><strong>${colorLabel}</strong></article>
     <article><span>最高值</span><strong>${overlayFormat(metric, max)}</strong></article>
-    <article><span>顯示鄉鎮</span><strong>${rows.length}</strong></article>
   `;
   document.querySelector("#overlaySvg").innerHTML = `
     <title id="overlayTitle">彰化鄉鎮社經疊合 SVG 圖</title>
@@ -843,9 +882,14 @@ function renderOverlay() {
     <rect x="24" y="24" width="712" height="592" rx="18" fill="#eef3f3" />
     <text x="42" y="54" class="overlay-chart-title">${label}</text>
     ${(townshipShapes?.towns || [])
-      .map((shape) => `
-        <path class="overlay-town-shape ${activeNames.has(shape.name) ? "active" : ""}" d="${shape.path}" />
-      `)
+      .map((shape) => {
+        const town = districtData.find((item) => item.name === shape.name);
+        const fill = town ? colorFor(districtMetric(town, colorMetric), colorMin, colorMax, colorMetric) : "#dfe8e8";
+        return `
+          <path class="overlay-town-shape ${activeNames.has(shape.name) ? "active" : ""} ${shape.name === selectedDistrict ? "selected" : ""}"
+            d="${shape.path}" fill="${fill}" data-overlay-town="${shape.name}" />
+        `;
+      })
       .join("")}
     ${rows
       .map((town) => {
@@ -858,19 +902,28 @@ function renderOverlay() {
         const barWidth = 14;
         const iconSize = 24;
         return `
-          <g class="overlay-symbol ${kind}" tabindex="0" role="img" aria-label="${town.name} ${label} ${overlayFormat(metric, value)}">
+          <g class="overlay-symbol ${kind}" tabindex="0" role="button" data-overlay-town="${town.name}" aria-label="${town.name} ${label} ${overlayFormat(metric, value)}">
             <ellipse cx="${x}" cy="${base + 3}" rx="${barWidth * 0.78}" ry="5" fill="rgba(23,33,43,0.18)" />
             <rect x="${x - barWidth / 2}" y="${y}" width="${barWidth}" height="${height}" rx="7" fill="${color}" opacity="0.82" />
             <ellipse cx="${x}" cy="${y}" rx="${barWidth / 2}" ry="4" fill="${color}" />
             <g class="overlay-icon" fill="${iconFill}" stroke="${iconFill}" stroke-width="3">${overlayIcon(kind, x, y - 18, iconSize)}</g>
             <text x="${x}" y="${Math.max(24, y - 46)}" class="overlay-value" text-anchor="middle">${overlayFormat(metric, value)}</text>
             <text x="${x}" y="${base + 20}" class="overlay-town" text-anchor="middle">${town.name}</text>
-            <title>${town.name}\n${label}: ${overlayFormat(metric, value)}</title>
+            <title>${town.name}\n${label}: ${overlayFormat(metric, value)}\n${colorLabel}: ${metricLabel(town, colorMetric)}</title>
           </g>
         `;
       })
       .join("")}
   `;
+  document.querySelectorAll("[data-overlay-town]").forEach((node) => {
+    node.addEventListener("click", () => selectDistrict(node.dataset.overlayTown));
+    node.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        selectDistrict(node.dataset.overlayTown);
+      }
+    });
+  });
 }
 
 function selectDistrict(name) {
@@ -878,6 +931,7 @@ function selectDistrict(name) {
   renderDetails();
   renderMap();
   renderTable();
+  renderOverlay();
 }
 
 document.querySelector("#refreshCounty").addEventListener("click", refreshCounty);
@@ -946,6 +1000,7 @@ document.querySelector("#townRangeMetric").addEventListener("change", () => {
 document.querySelector("#townRangeMin").addEventListener("input", applyTownRangeFilter);
 document.querySelector("#townRangeMax").addEventListener("input", applyTownRangeFilter);
 document.querySelector("#overlayMetric").addEventListener("change", renderOverlay);
+document.querySelector("#overlayColorMetric").addEventListener("change", renderOverlay);
 document.querySelector("#overlaySort").addEventListener("change", renderOverlay);
 document.querySelector("#overlayLimit").addEventListener("change", renderOverlay);
 

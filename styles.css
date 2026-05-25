@@ -875,13 +875,19 @@ input[type="range"] {
 }
 
 .overlay-town-shape {
-  fill: #dfe8e8;
   stroke: #fff;
   stroke-width: 1.5;
+  cursor: pointer;
 }
 
 .overlay-town-shape.active {
-  fill: #d2eeee;
+  opacity: 0.86;
+}
+
+.overlay-town-shape.selected {
+  stroke: var(--ink);
+  stroke-width: 3;
+  filter: drop-shadow(0 4px 8px rgba(23, 33, 43, 0.24));
 }
 
 .overlay-chart-title {
@@ -891,7 +897,7 @@ input[type="range"] {
 }
 
 .overlay-symbol {
-  cursor: default;
+  cursor: pointer;
 }
 
 .overlay-icon {
@@ -921,6 +927,44 @@ input[type="range"] {
 
 .overlay-town {
   font-size: 10px;
+}
+
+.overlay-detail {
+  margin-top: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 20px;
+  background: var(--panel);
+  box-shadow: 0 10px 32px rgba(23, 33, 43, 0.06);
+}
+
+.overlay-detail h3 {
+  margin: 0 0 14px;
+  font-size: 1.55rem;
+}
+
+.overlay-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.overlay-detail-grid div {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: #f8fbfb;
+}
+
+.overlay-detail-grid dt {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.overlay-detail-grid dd {
+  margin: 4px 0 0;
+  font-weight: 900;
 }
 
 table {
@@ -996,6 +1040,7 @@ tbody tr.active {
   .sankey-tools,
   .sankey-summary,
   .overlay-summary,
+  .overlay-detail-grid,
   .range-filter,
   .overlay-row {
     grid-template-columns: 1fr;

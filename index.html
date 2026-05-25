@@ -140,6 +140,12 @@
               <div><dt>總宅數</dt><dd id="selectedTotal">--</dd></div>
               <div><dt>平均屋齡</dt><dd id="selectedAvg">--</dd></div>
               <div><dt>平均坪數</dt><dd id="selectedArea">--</dd></div>
+              <div><dt>平均所得</dt><dd id="selectedIncome">--</dd></div>
+              <div><dt>納稅單位</dt><dd id="selectedTaxUnits">--</dd></div>
+              <div><dt>人口數</dt><dd id="selectedPopulation">--</dd></div>
+              <div><dt>0-14 歲</dt><dd id="selectedYouth">--</dd></div>
+              <div><dt>15-64 歲</dt><dd id="selectedWorking">--</dd></div>
+              <div><dt>65 歲以上</dt><dd id="selectedSenior">--</dd></div>
               <div><dt>10 年以下</dt><dd id="selectedYoung">--</dd></div>
               <div><dt>30 年以上</dt><dd id="selectedOld30">--</dd></div>
               <div><dt>50 年以上</dt><dd id="selectedOld50">--</dd></div>
@@ -299,7 +305,7 @@
 
         <div class="toolbar" aria-label="社經疊合控制列">
           <label class="select-field">
-            <span>資料面向</span>
+            <span>柱狀資料</span>
             <select id="overlayMetric">
               <optgroup label="住宅">
                 <option value="total">房屋數量</option>
@@ -321,6 +327,24 @@
                 <option value="youthCount">0-14 歲人口</option>
                 <option value="youthShare">0-14 歲比例</option>
                 <option value="workingAgeShare">15-64 歲比例</option>
+              </optgroup>
+            </select>
+          </label>
+          <label class="select-field">
+            <span>底圖色深</span>
+            <select id="overlayColorMetric">
+              <optgroup label="住宅">
+                <option value="old30Share">30 年以上老屋比例</option>
+                <option value="under5Share">5 年內占比</option>
+                <option value="total">房屋數量</option>
+                <option value="avgAge">平均屋齡</option>
+                <option value="avgArea">平均坪數</option>
+              </optgroup>
+              <optgroup label="所得與人口">
+                <option value="avgIncomeK">平均所得</option>
+                <option value="population">人口數</option>
+                <option value="seniorShare">65 歲以上比例</option>
+                <option value="youthShare">0-14 歲比例</option>
               </optgroup>
             </select>
           </label>
@@ -352,6 +376,7 @@
             <desc id="overlayDesc">依選取資料面向在各鄉鎮位置疊加符號柱。</desc>
           </svg>
         </div>
+        <aside class="overlay-detail" id="overlayDetail" aria-live="polite"></aside>
       </section>
 
       <section class="section disclaimer" id="disclaimer">
