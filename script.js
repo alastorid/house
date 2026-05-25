@@ -424,7 +424,7 @@ function buildSankeyGraph(records, stages) {
     node.value = Math.max(out, incoming);
   });
 
-  const stageX = stages.length === 2 ? [70, 960] : [56, 520, 960];
+  const stageX = stages.length === 2 ? [190, 940] : [170, 590, 940];
   stages.forEach((stage, stageIndex) => {
     const stageNodes = [...nodes.values()]
       .filter((node) => node.stage === stage)
@@ -555,10 +555,10 @@ function renderSankey() {
   const total = records.reduce((sum, record) => sum + record.value, 0);
   const svg = document.querySelector("#sankeySvg");
   const stageHeadings = stages
-    .map((stage, index) => `<text x="${stages.length === 2 ? [70, 960][index] : [56, 520, 960][index]}" y="42" class="sankey-heading">${stageLabels[stage]}</text>`)
+    .map((stage, index) => `<text x="${stages.length === 2 ? [190, 940][index] : [170, 590, 940][index]}" y="42" class="sankey-heading">${stageLabels[stage]}</text>`)
     .join("");
   if (total === 0) {
-    svg.style.width = `${1200 * sankeyZoom}px`;
+    svg.style.width = `${100 * sankeyZoom}%`;
     svg.style.height = `${980 * sankeyZoom}px`;
     svg.innerHTML = `
       <title id="sankeyTitle">彰化鄉鎮市住宅流量 Sankey</title>
@@ -606,7 +606,7 @@ function renderSankey() {
     })
     .join("");
 
-  svg.style.width = `${1200 * sankeyZoom}px`;
+  svg.style.width = `${100 * sankeyZoom}%`;
   svg.style.height = `${980 * sankeyZoom}px`;
   svg.innerHTML = `
     <title id="sankeyTitle">彰化鄉鎮市住宅流量 Sankey</title>
